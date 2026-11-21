@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>짝맞추기 카드게임</title>
+<style>
+:root {
+--bg-color: #fdf6e3;
+--board-bg: #e8dcc4;
+--card-back: #ff8a80;
+--card-back-pattern: #ff5252;
+--primary: #ff7043;
+--text-dark: #4e342e;
+--cols: 4;
+--rows: 3;
+--card-size: 180px;
+--ui-scale: 1;
+}
+* {
+box-sizing: border-box;
+user-select: none;
+-webkit-user-select: none;
+-webkit-touch-callout: none;
+touch-action: manipulation;
+}
+body,
+html {
+margin: 0;
+padding: 0;
+width: 100vw;
+height: 100vh;
+height: 100dvh;
+overflow: auto;
+background-color: var(--bg-color);
+font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+display: flex;
+flex-direction: column;
+}
+header {
+min-height: calc(84px * var(--ui-scale));
+padding: calc(8px * var(--ui-scale)) calc(32px * var(--ui-scale));
+display: flex;
+flex-wrap: wrap;
+align-items: center;
+justify-content: space-between;
+gap: calc(8px * var(--ui-scale));
+background: #ffffff;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+z-index: 10;
+}
+.btn-group {
+display: flex;
+flex-wrap: wrap;
+gap: calc(12px * var(--ui-scale));
+align-items: center;
+}
+button,
+.file-label {
+border: none;
+background: #f0ebe1;
+color: var(--text-dark);
+font-size: calc(1.25rem * var(--ui-scale));
+font-weight: 700;
+padding: calc(12px * var(--ui-scale)) calc(24px * var(--ui-scale));
+border-radius: calc(16px * var(--ui-scale));
+cursor: pointer;
+transition: transform 0.15s, background 0.2s;
+display: inline-flex;
+align-items: center;
+gap: calc(8px * var(--ui-scale));
+}
+button:active,
+.file-label:active {
+transform: scale(0.95);
+}
+button.active {
+background: var(--primary);
+color: #ffffff;
+box-shadow: 0 4px 10px rgba(255, 112, 67, 0.35);
+}
+.action-btn {
+background: #4db6ac;
+color: #ffffff;
+}
+.file-label {
+background: #9575cd;
+color: #ffffff;
+}
+.fullscreen-btn {
+background: #5c6bc0;
+color: #ffffff;
+}
+#imageUpload {
+display: none;
+}
+.status-info {
+font-size: calc(1.4rem * var(--ui-scale));
+font-weight: 800;
+color: var(--text-dark);
+display: flex;
+gap: calc(24px * var(--ui-scale));
+}
+main {
+flex: 1 1 auto;
+min-height: 0;
+margin: calc(20px * var(--ui-scale)) calc(32px * var(--ui-scale)) calc(28px * var(--ui-scale));
+background: var(--board-bg);
+border-radius: calc(32px * var(--ui-scale));
+box-shadow: inset 0 6px 16px rgba(0, 0, 0, 0.08);
+padding: calc(20px * var(--ui-scale));
+display: grid;
+grid-template-columns: repeat(var(--cols), 1fr);
+grid-template-rows: repeat(var(--rows), 1fr);
+place-items: center;
+position: relative;
+}
+.card-slot {
+width: 100%;
+height: 100%;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.card {
+width: var(--card-size);
+height: var(--card-size);
+aspect-ratio: 1 / 1;
+perspective: 1000px;
+cursor: pointer;
+transform: translate(var(--tx, 0px), var(--ty, 0px)) rotate(var(--rot, 0deg));
+transition: transform 0.25s ease, width 0.2s ease, height 0.2s ease;
+}
+.card:active {
+transform: translate(var(--tx, 0px), var(--ty, 0px)) rotate(var(--rot, 0deg)) scale(0.95);
+}
+.card-inner {
+width: 100%;
+height: 100%;
+position: relative;
+transform-style: preserve-3d;
+transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+border-radius: 22px;
+box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+}
+.card.flipped .card-inner,
+.card.matched .card-inner {
+transform: rotateY(180deg);
+}
+.card.matched .card-inner {
+animation: matchPop 0.5s ease forwards;
+box-shadow: 0 4px 12px rgba(76, 175, 80, 0.35);
+}
+@keyframes matchPop {
+0% {
+transform: rotateY(180deg) scale(1);
+}
+50% {
+transform: rotateY(180deg) scale(1.12);
+}
+100% {
+transform: rotateY(180deg) scale(1);
+}
+}
+.card-face {
+position: absolute;
+width: 100%;
+height: 100%;
+backface-visibility: hidden;
+-webkit-backface-visibility: hidden;
+border-radius: 22px;
+border: 6px solid #ffffff;
+display: flex;
+align-items: center;
+justify-content: center;
+overflow: hidden;
+}
+.card-back {
+background-color: var(--card-back);
+background-image: radial-gradient(var(--card-back-pattern) 20%, transparent 20%),
+radial-gradient(#ffffff 15%, transparent 16%);
+background-size: 36px 36px;
+background-position: 0 0, 18px 18px;
+}
+.card-back::after {
+content: "★";
+font-size: calc(var(--card-size) * 0.22);
+color: rgba(255, 255, 255, 0.85);
+background: rgba(255, 255, 255, 0.2);
+width: calc(var(--card-size) * 0.38);
+height: calc(var(--card-size) * 0.38);
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+.card-front {
+background-color: #ffffff;
+transform: rotateY(180deg);
+}
+.card-front img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+pointer-events: none;
+}
+.card-front .emoji {
+font-size: calc(var(--card-size) * 0.5);
+line-height: 1;
+}
+.overlay {
+position: fixed;
+inset: 0;
+background: rgba(0, 0, 0, 0.55);
+display: flex;
+align-items: center;
+justify-content: center;
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.3s ease;
+z-index: 100;
+}
+.overlay.show {
+opacity: 1;
+pointer-events: auto;
+}
+.modal {
+background: #ffffff;
+padding: 48px 64px;
+border-radius: 36px;
+text-align: center;
+box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+transform: scale(0.8);
+transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.overlay.show .modal {
+transform: scale(1);
+}
+.modal h2 {
+font-size: 3rem;
+margin: 0 0 16px;
+color: var(--primary);
+}
+.modal p {
+font-size: 1.6rem;
+color: var(--text-dark);
+margin: 0 0 32px;
+font-weight: 700;
+}
+.modal button {
+font-size: 1.6rem;
+padding: 18px 48px;
+background: var(--primary);
+color: #ffffff;
+border-radius: 24px;
+}
+#confettiCanvas {
+position: fixed;
+inset: 0;
+pointer-events: none;
+z-index: 99;
+}
+@media (max-width: 600px) {
+header {
+padding: calc(6px * var(--ui-scale)) calc(12px * var(--ui-scale));
+gap: calc(6px * var(--ui-scale));
+}
+.btn-group {
+gap: calc(6px * var(--ui-scale));
+}
+button,
+.file-label {
+font-size: calc(0.95rem * var(--ui-scale));
+padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale));
+border-radius: calc(12px * var(--ui-scale));
+gap: calc(4px * var(--ui-scale));
+}
+.status-info {
+font-size: calc(1rem * var(--ui-scale));
+gap: calc(12px * var(--ui-scale));
+}
+main {
+margin: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(14px * var(--ui-scale));
+border-radius: calc(20px * var(--ui-scale));
+padding: calc(10px * var(--ui-scale));
+}
+}
+</style>
+</head>
+<body>
+<header>
+<div class="btn-group">
+<button class="diff-btn active" data-r="3" data-c="4">3 x 4 (쉬움)</button>
+<button class="diff-btn" data-r="4" data-c="5">4 x 5 (보통)</button>
+<button class="diff-btn" data-r="5" data-c="6">5 x 6 (어려움)</button>
+</div>
+<div class="btn-group">
+<button class="cat-btn active" data-category="object">🧸 사물</button>
+<button class="cat-btn" data-category="emotion">😊 표정</button>
+<button class="cat-btn" data-category="tinyping">💖 티니핑</button>
+</div>
+<div class="status-info">
+<span id="pairStatus">찾은 짝: 0 / 6</span>
+<span id="moveStatus">시도: 0번</span>
+</div>
+<div class="btn-group">
+<label class="file-label" for="imageUpload">📷 사진 불러오기</label>
+<input type="file" id="imageUpload" multiple accept="image/*">
+<button class="action-btn" id="peekBtn">👀 살짝 보기</button>
+<button class="action-btn" id="restartBtn">🔄 다시 하기</button>
+<button class="fullscreen-btn" id="fullscreenBtn">⛶ 전체화면</button>
+</div>
+</header>
+<main id="board"></main>
+<canvas id="confettiCanvas"></canvas>
+<div class="overlay" id="winOverlay">
+<div class="modal">
+<h2>🎉 참 잘했어요! 🎉</h2>
+<p id="winMessage">모든 카드의 짝을 다 찾았어요!</p>
+<button id="playAgainBtn">한 판 더 하기!</button>
+</div>
+</div>
+<script>
+let customImages = [
+];
+let customVoice = [
+];
+let tinypings = [
+{ name: "하츄핑", start: 0.00, end: 1.1, src: "//i.namu.wiki/i/ABgSJh2qDR8o_X_n_GQ81ZWvHJUbOIgln-AO5kCbkAMN8V7neioWmFPvHKAKPvAJEMYd7Dj5aeS1-SyZa7eYSAOa1NdMa0elbp43H0zKuzNdrW0D6SkrWigaMdNEqkFsBBwbA-jTMDoxQyA_FwUILQ.webp" },
+{ name: "바로핑", start: 1.2, end: 2.3, src: "//i.namu.wiki/i/o6TusvA6SXAZHGyxlamCCxBx7-3UUUlAHJAh7fyOI6v11tMfAgkMr0k7ITWT9IIOA8gRxBF8hd_TPG4C0KAJrHAWbkEM3LNXoBhllkUVf7HPwLIljo-z631_63KqfUbjaV0nKUCyLnnu2fzywZrOEQ.webp" },
+{ name: "아자핑", start: 2.5, end: 3.6, src: "//i.namu.wiki/i/DnCAA6ZOUrsUv9iK5oaYj3bWR5Ov21NexD3lxR0d-PKacHT5IWszaEnAnyPGGnx8gSmPMP7uhh-2HJRpsHGofXN9gHdXfvtgVpUxNEXIl_8hHfmzTk6nDEtSv9P7nO9zFAesXbcaSyvlZXf7Ha33TQ.webp" },
+{ name: "차차핑", start: 3.9, end: 5.2, src: "//i.namu.wiki/i/D_FjlX-2h5QlOuLi0JeHiRToAgO3P7k1I2Q7JBmsdfB1mUlt98S9fBifTtyk2H1nnEqpHIBunsImsaymi4tCuJZHQhf3Re-ZNm8cN8uhAXLrZkbBwQaf812yJ_rbfOCpvP5TdpkUFaEMbAcYHq5kEg.webp" },
+{ name: "라라핑", start: 5.7, end: 6.55, src: "//i.namu.wiki/i/sEwdzKl1r3LXGZaBiLCwvJv_hKvqqtw2XDPjyflc01EO2jTFAuMXtald-ZpTkEZsrhPqqjkHJogHfFNiBJWqH2uDSZpKBM-ojli4WIiv0j3jH5g39MxEBmJSgAw29d2eEasEez6leuGIjRpz2kmx3w.webp" },
+{ name: "해핑", start: 7.1, end: 8.0, src: "//i.namu.wiki/i/zXFuZqlhrVzNWCdj88sjtjNw-cdhy98kl6psHW1cQJFMKNiImdxje03bcRJrqWxxFmib4XtTPiHbCz8X2pQe-4TeCpFCMOse5Kh4dY1yY82TNla0_2H6NI3a2rp2OQ4Q4kEy6JRX_Ythw41ZBeZzAg.webp" },
+{ name: "조아핑", start: 8.4, end: 9.4, src: "//i.namu.wiki/i/lmNxhqRzwfaVhWKLmVkemlw5tVKENA-9Xl1dZCBz3oUH09BTh0TPIuCQiNKf02DHqPX3c7WEWnRthyMnLopXx0LwLIumWK4K9BdcVl8HItluoragpIZxuz9krF953Lj2VFQhSV8yW9bD1d3sg3yGLw.webp" },
+{ name: "방글핑", start: 9.8, end: 10.8, src: "//i.namu.wiki/i/yhL5afe3tpbsZR8q2aUqrebKw7Y5M9dZ9BVL8-JKTkBzmSgbJT7pUocgamvzeM7mFaqcqthHsNDYIVmPbV9gi3K-sBPLn1-VT5zPxOAc3Qrejkdy4Ht1BZJv1pL8hC8zs9DZvsnnv5MAmfkR-YmssA.webp" },
+{ name: "믿어핑", start: 11.3, end: 12.3, src: "//i.namu.wiki/i/08koVl-Xd8YIHHcvGT2yp7nZFt8KiV03pshEa8v_i2TxnqBpHRzgS-h3YM_10S6r3GrUJb_YhTUtdUQapNugFYvpGwzSBRkUTz2vfIlwzqpv4Zl56XrnbiR54RRYpI0ni9ppclWPoH8PjbqGEIjYbQ.webp" },
+{ name: "꾸래핑", start: 12.6, end: 13.6, src: "//i.namu.wiki/i/hEHfXOpea2k3oFjKouW9FJhCzmBzEu2IeRj2tyrDHcndprWs-J660_r2nWu1AvRbO_5o8qFpPhURluGF_DPZEGxXN13AOCifizJ9824Nk6EVfU5wmpCnKcz_geAXxd8hT7_moZcujsqdvn0fZfZWEg.webp" },
+{ name: "나나핑", start: 13.9, end: 14.9, src: "//i.namu.wiki/i/mLjVMlz4Gs9qx2VUKot56W11Tyndb4dt1SwaxyS4woDpX3vhoU_hAcgKZeJx91H7-aVIipgH4NpPdjBbykgN5094oZMdo4_1W78qDMjEFfLSTl5OxHGY_MWxDJLevo6qgNdTFfCQuqm8dprfUS_Jxw.webp" },
+{ name: "솔찌핑", start: 15.5, end: 16.5, src: "//i.namu.wiki/i/OzrvWz1Ed2kQ7zZpXZaPlfdm4UBprHgm6eVG-e3qsGMEi4anMyuljkIqDHTiwqIg3O86WgPTzsv45Dekq9BvT_539tbrMuslRyo18JOHFxbPHkczmaR8vqB90kxLBO8iL9I3u4Xzj0kMwWWQcEegkw.webp" },
+{ name: "행운핑", start: 17.0, end: 18.0, src: "//i.namu.wiki/i/Ta2secvcpjcoS4NNGj7_pswwbhZoe1YVa0xoRefONM2FUAB30jY7bEj1KxzlprjHJBluumGsmD7SFuCqW7JQzum1I0zeme3E0nFP56UN-_D1YsQKyFPEvhvsS39c2f0QT6M59CEwvZumpflsn5Wfkw.webp" },
+{ name: "샤샤핑", start: 18.3, end: 19.3, src: "//i.namu.wiki/i/NIvjsoLCJFi_LXMNDriFkwykTHLuc4NtiTUdpD1742-R9rE5SHV2CHwo8dsb7ANAdF9eLBIAyirlzxxuHb_C2xL8JSr4WeYe8E0O_dXEzlIc5DH4oglpbBPZkiS87S6eIV2_5CSiNbtEVxQFwPN0qw.webp" },
+{ name: "포실핑", start: 19.9, end: 21.0, src: "//i.namu.wiki/i/tNrWWZS-lF1-MogXhKept-gO44NJGkOIXgce_1KQ_1S85g5sLO0_I0_yM5b6zauQiRF2lhkinMCcKzOW8xZROMhwVSq7rdD8sm5lKRjj-XvMpw462jdlgl9W0x2Cgid-y54hhYayqfIdafuGv_9VUA.webp" },
+{ name: "말랑핑", start: 21.4, end: 22.5, src: "//i.namu.wiki/i/5K3Q0_zx-UjmBiF7GFSaD7CQphaFmYbGNa6_qjC714FHC004SepHX3wkeSVX38fFtg_dQGsqgtmlVpwuZJ3RKlGAyj7FFss9VGuYxRPIjHu8zQTboj-eO4ZqeeSgdL7tw8wJ8mERiun-reE6l6PaOw.webp" },
+{ name: "새콤핑", start: 22.9, end: 24.0, src: "//i.namu.wiki/i/oqkP-T1aATeAqUf4V-rRGnmUr5pHiKmaSybT7NAGUCW3yF2BaiIIX1zDGR8F939YkEkHq_EDgf91i_pnsQaUMYrMUW1DZBkC1pif22Em-RgOiQdMbSIRfPMxu2yE6xuTC9HEhxZ7bvA_juJh1qnTNQ.webp" },
+{ name: "달콤핑", start: 24.3, end: 25.4, src: "//i.namu.wiki/i/m5dDxcgvB04EJzP-SotHq_6fk4eosDku01ntCpKB9A-9n7yep4Mg9PThEtzEhHYdAHtIbH5VXpenAA9Ozafp6oerL5he7s9HLoZ0xTzJphDWIxPP2B3K-NacOajjBs94VpQCPehpNdISy0EKL-bI8Q.webp" },
+{ name: "빛나핑", start: 25.8, end: 26.9, src: "//i.namu.wiki/i/BR_6Q74KqE7QgTMBtkzS6V1kgrUcpZ-X89kc_mhr3GoTArTRFEd9xVNXn2judSAyG_VTlxTlMOhGjL6MX9HVfTo8kMeuaoZ-Py2poUqRRtWtiaYDtHiYFm1qa7jlZmOpJ8b1AnMJEwZTP7vSc5azSA.webp" },
+{ name: "초롱핑", start: 27.2, end: 28.3, src: "//i.namu.wiki/i/pQCUIqhzmEfskEmALOKd3C3a3WgLoHRBxAmNWJnm6TUXqGOZhmQd4gEzY0Wtir2KiCQJokLrJZfF1zgQwXVPHyd5epP4sUdpGpxusj0NgzU2bwaEIsoje4M8uv8GnfmvGDMhOpOR_3i79nxqf4hmdQ.webp" },
+{ name: "빤짝핑", start: 28.8, end: 29.9, src: "//i.namu.wiki/i/QgTZz81K-NRn9RWfgjqq5a-ekODXuN-egrkkSCK_gNgTjyZx2DlmHLgxNO4yenVftCU843ZkLbE4-_5mwKIkw7xADUxMFqzNnD-PXLfQLh23rzwP2csXkaueskk0GgTUr3JR8bN878Ve7es_4mvSQg.webp" },
+{ name: "왕자핑", start: 30.3, end: 31.4, src: "//i.namu.wiki/i/WlmJI0VlR52NpXKjJ2qs_3bt-oSCMA-rJZyc3IPoN9YJkl8YKcu2HADPmtG9qDrEHxg09VSUO9qyiTLdTIQ8CAXYMUE1x9jxeJkkUOTWz7Vwb_-7G9CwATR1oP1Tcj04tLgSsTmpIlN9epaV6Mv8Xg.webp" },
+{ name: "오로라핑", start: 31.8, end: 32.9, src: "//i.namu.wiki/i/vOgK7rax1-jTdS9iLPoW5b1p70gn9SCnSIBXk2Ezos7EYNv-rqCTTtX_kYzZhfgkOrXWSGeswVgnD0pCkdCYwuqZm9bwYz7rxvizxvBQ5acQyEWgNJHAoOKDP9wR7V5xW1sXDTEuO22u_oYawTnyyQ.webp" },
+{ name: "사뿐핑", start: 33.3, end: 34.4, src: "//i.namu.wiki/i/wq0FM2z77_ZoUy4w_P3PP3vq9KxOFI0ZnqzUgLSjSHb6hx5ZrYZ2FFNKAddAlJVLZduSTEsZFQvddwXIpTjlwxqb_CUoaIpyr4YkRP8ZFIdpblYepe1XECmeI3-KHGbvMC0sl9VviqeJtUdqYwfKYA.webp" },
+{ name: "아름핑", start: 34.8, end: 35.9, src: "//i.namu.wiki/i/3wK5UNI2s8P1JUCXOnzmsp9-iY0uBSbUGcL9RLh3Rr9Ndjb2XZl30eo2SIkxhyZhlkc9QKd8UxvUT7LTWnbjLagsiawREBKhi9NXn2lSCyx5ztnRLKURelRUwLrd0Vo5dFCDdPuirTDDp_GGIOgb1Q.webp" },
+{ name: "뽀니핑", start: 36.3, end: 37.4, src: "//i.namu.wiki/i/yEIcwhkvib3lAt5ABGE0--PXnLhSH8jVOisVq9QYEe3NrJabVXe3LwDQRyUjbCJl_RJ145snDiWPygewIrlgggO-rxey4Ad8HnGGt9Hn4gLog3OFpi6BN2beFz4tkDyKUV9i-SBLvjbB0whZVkNNXw.webp" },
+{ name: "이클립스핑", start: 37.8, end: 38.9, src: "//i.namu.wiki/i/4Way_wfgheMXjfIYivnH1tIvu4kkqdq78BwEHqiRt67q8m4OqpV5Hh_vdVTXfwFcQ3QNUXh2xuLFX-ij6BNK7Pe-ikjchsqCnA9XTwaXDO_0BVs0cP6uA0iajoe3hezu9GBg0f64JhG-aSGkoW2Acg.webp" },
+{ name: "다이아나핑", start: 39.4, end: 40.6, src: "//i.namu.wiki/i/o1vZhaqV-RD_ZXxG3xGISeKYReVN6DxyQpdztFU_-h1yxI_nrN2CNJNW3tmvMUOsn133XhUjU2cRV--D8CCqpgjPF7ShGg3otHAmepNc6WOBuAbD4IBhPY-k408-NQRCWPsOFGENegm0VqpVqJbMCw.webp" },
+{ name: "레몬핑", start: 41.2, end: 42.4, src: "//i.namu.wiki/i/nldbiNLyYoydokfKTKdzEet8UhQ1v2Hu8P19Dn-c6KN4-FqJpsfGEKFmOAx0jfnT8SIhzG3-s72jrWdlNxkaixajNaMsKISE_7xB2VNuED4aWiABFLYH-2SvRh6_MwYi9sl-rbBuSjE1fDFVx54rbg.webp" },
+{ name: "체리핑", start: 42.8, end: 44.0, src: "//i.namu.wiki/i/IokadiUyqiFogGqnVIYbysK2JRmo9LEaiO6N_eqHFRxWkYdLexnd0Ve-EwqA9nYfafp8NX4yp2cKZPmE08I_OpkC0DCipl3AgyzZAsF_yaLwrBUm_4zkBLnz3mPNJbV2Xo9kQ4SLo9Fz10Hp0d9-5w.webp" },
+{ name: "라임핑", start: 44.2, end: 45.4, src: "//i.namu.wiki/i/E6oGtnyFU14DN0NCu3naM1ijv7MrIK9FsbbFPNMbQ4IYz4pxnIeRqUDgTrZM7iRcQczrSpEgH47edK3AGlpXc6tnRH1S-keLfbN37tW-R6tNgyVdo6Cd3yWep9NGh7Mc2mp3-ByGxD6aQyhmnlwG-A.webp" },
+//{ name: "뮤즈핑", start: 45.6, end: 46.8, src: "//i.namu.wiki/i/XKCDmyP27zKLSIPxGHO2vAC4kIe_HswQDnwnsWp_HjjjPzsWwfb3Pjm1vmaxJHU5NCJzNyQus8B_xmrTgq10FjcHpmtppxPamkiYOLpYN8UL5Z3EBXFTFiBPJmiQPn1EKsk8N8kVttHy9mgi_R-iHA.svg" },
+//{ name: "디바핑", start: 47.1, end: 48.3, src: "//i.namu.wiki/i/XKCDmyP27zKLSIPxGHO2vAC4kIe_HswQDnwnsWp_HjjjPzsWwfb3Pjm1vmaxJHU5NCJzNyQus8B_xmrTgq10FjcHpmtppxPamkiYOLpYN8UL5Z3EBXFTFiBPJmiQPn1EKsk8N8kVttHy9mgi_R-iHA.svg" }
+];
+const OBJECT_ITEMS = [
+{ emoji: '🍎', bg: '#FFEBEE', sound: 'apple' },
+{ emoji: '🍌', bg: '#FFFDE7', sound: 'banana' },
+{ emoji: '🍇', bg: '#F3E5F5', sound: 'grape' },
+{ emoji: '🍉', bg: '#E8F5E9', sound: 'watermelon' },
+{ emoji: '🍊', bg: '#FFF3E0', sound: 'orange' },
+{ emoji: '🍓', bg: '#FCE4EC', sound: 'strawberry' },
+{ emoji: '🥕', bg: '#FFF8E1', sound: 'carrot' },
+{ emoji: '🍞', bg: '#FFF8E1', sound: 'bread' },
+{ emoji: '🍰', bg: '#FCE4EC', sound: 'cake' },
+{ emoji: '🍦', bg: '#F9FBE7', sound: 'ice cream' },
+{ emoji: '🍬', bg: '#F3E5F5', sound: 'candy' },
+{ emoji: '🥛', bg: '#E3F2FD', sound: 'milk' },
+{ emoji: '🚗', bg: '#FFEBEE', sound: 'car' },
+{ emoji: '🚌', bg: '#FFFDE7', sound: 'bus' },
+{ emoji: '🚂', bg: '#E8EAF6', sound: 'train' },
+{ emoji: '✈️', bg: '#E1F5FE', sound: 'airplane' },
+{ emoji: '⛵', bg: '#E0F7FA', sound: 'boat' },
+{ emoji: '🚲', bg: '#E0F2F1', sound: 'bicycle' },
+{ emoji: '⚽', bg: '#E8F5E9', sound: 'ball' },
+{ emoji: '🧸', bg: '#FFF3E0', sound: 'teddy bear' },
+{ emoji: '🎈', bg: '#FCE4EC', sound: 'balloon' },
+{ emoji: '⏰', bg: '#FFFDE7', sound: 'clock' },
+{ emoji: '📚', bg: '#F1F8E9', sound: 'book' },
+{ emoji: '✏️', bg: '#FFF8E1', sound: 'pencil' },
+{ emoji: '✂️', bg: '#E8EAF6', sound: 'scissors' },
+{ emoji: '📱', bg: '#E3F2FD', sound: 'phone' },
+{ emoji: '🧢', bg: '#E0F7FA', sound: 'hat' },
+{ emoji: '👟', bg: '#F3E5F5', sound: 'shoes' },
+{ emoji: '☂️', bg: '#E1F5FE', sound: 'umbrella' },
+{ emoji: '⭐', bg: '#FFFDE7', sound: 'star' },
+{ emoji: '🌙', bg: '#E8EAF6', sound: 'moon' },
+{ emoji: '☀️', bg: '#FFF3E0', sound: 'sun' },
+{ emoji: '🌸', bg: '#FCE4EC', sound: 'flower' },
+{ emoji: '🌳', bg: '#E8F5E9', sound: 'tree' },
+{ emoji: '🌧️', bg: '#E3F2FD', sound: 'rain' },
+{ emoji: '❄️', bg: '#E0F7FA', sound: 'snow' },
+{ emoji: '❤️', bg: '#FFEBEE', sound: 'heart' },
+{ emoji: '🏠', bg: '#FFF8E1', sound: 'house' },
+{ emoji: '🚪', bg: '#EFEBE9', sound: 'door' },
+{ emoji: '🛏️', bg: '#F3E5F5', sound: 'bed' },
+{ emoji: '🪑', bg: '#FFF3E0', sound: 'chair' },
+{ emoji: '🥤', bg: '#E0F7FA', sound: 'cup' },
+{ emoji: '🍽️', bg: '#F1F8E9', sound: 'plate' },
+{ emoji: '🥄', bg: '#FFFDE7', sound: 'spoon' },
+{ emoji: '🪥', bg: '#E0F2F1', sound: 'toothbrush' },
+{ emoji: '🧼', bg: '#E1F5FE', sound: 'soap' },
+{ emoji: '🧻', bg: '#F3E5F5', sound: 'towel' },
+{ emoji: '👓', bg: '#E8EAF6', sound: 'glasses' },
+{ emoji: '🔑', bg: '#FFF8E1', sound: 'key' },
+{ emoji: '💰', bg: '#FFFDE7', sound: 'money' },
+{ emoji: '🎁', bg: '#FCE4EC', sound: 'gift' },
+{ emoji: '🍕', bg: '#FFF3E0', sound: 'pizza' },
+{ emoji: '🍔', bg: '#FFF8E1', sound: 'hamburger' },
+{ emoji: '🥚', bg: '#FFFDE7', sound: 'egg' },
+{ emoji: '🧀', bg: '#FFF8E1', sound: 'cheese' },
+{ emoji: '💧', bg: '#E3F2FD', sound: 'water' },
+{ emoji: '🔥', bg: '#FFF3E0', sound: 'fire' },
+{ emoji: '☁️', bg: '#E0F7FA', sound: 'cloud' },
+{ emoji: '🌈', bg: '#F3E5F5', sound: 'rainbow' },
+{ emoji: '🦋', bg: '#FFF8E1', sound: 'butterfly' },
+{ emoji: '🐝', bg: '#FFFDE7', sound: 'bee' },
+{ emoji: '🐟', bg: '#E1F5FE', sound: 'fish' },
+{ emoji: '🐦', bg: '#E0F7FA', sound: 'bird' },
+{ emoji: '🐢', bg: '#E8F5E9', sound: 'turtle' },
+{ emoji: '🐌', bg: '#F1F8E9', sound: 'snail' },
+{ emoji: '🐞', bg: '#FFEBEE', sound: 'ladybug' },
+{ emoji: '🐜', bg: '#EFEBE9', sound: 'ant' },
+{ emoji: '🦖', bg: '#E8F5E9', sound: 'dinosaur' },
+{ emoji: '🐘', bg: '#E0F2F1', sound: 'elephant' },
+{ emoji: '🦒', bg: '#FFF8E1', sound: 'giraffe' },
+{ emoji: '🐵', bg: '#FFF3E0', sound: 'monkey' },
+{ emoji: '🐧', bg: '#E3F2FD', sound: 'penguin' },
+{ emoji: '🦉', bg: '#EFEBE9', sound: 'owl' },
+{ emoji: '🐿️', bg: '#FFF8E1', sound: 'squirrel' },
+{ emoji: '🐳', bg: '#E1F5FE', sound: 'whale' },
+{ emoji: '🦈', bg: '#E0F7FA', sound: 'shark' },
+{ emoji: '🦀', bg: '#FFEBEE', sound: 'crab' },
+{ emoji: '🐙', bg: '#E1F5FE', sound: 'octopus' },
+{ emoji: '🦆', bg: '#FFFDE7', sound: 'duck' },
+{ emoji: '🐔', bg: '#FFF3E0', sound: 'chicken' },
+{ emoji: '🐴', bg: '#EFEBE9', sound: 'horse' },
+{ emoji: '🐑', bg: '#F3E5F5', sound: 'sheep' },
+{ emoji: '🐮', bg: '#FFF8E1', sound: 'cow' },
+{ emoji: '🐐', bg: '#F1F8E9', sound: 'goat' },
+{ emoji: '🐷', bg: '#FFEBEE', sound: 'pig' },
+{ emoji: '🐭', bg: '#F3E5F5', sound: 'mouse' },
+{ emoji: '🐯', bg: '#FFF3E0', sound: 'tiger' },
+{ emoji: '🦁', bg: '#FFFDE7', sound: 'lion' },
+{ emoji: '🐻', bg: '#E3F2FD', sound: 'bear' },
+{ emoji: '🐼', bg: '#E0F7FA', sound: 'panda' },
+{ emoji: '🐶', bg: '#FFF3E0', sound: 'dog' },
+{ emoji: '🐱', bg: '#FCE4EC', sound: 'cat' },
+{ emoji: '🐰', bg: '#F3E5F5', sound: 'rabbit' },
+{ emoji: '🦊', bg: '#E8EAF6', sound: 'fox' },
+{ emoji: '🐸', bg: '#E8F5E9', sound: 'frog' },
+{ emoji: '🐍', bg: '#E8F5E9', sound: 'snake' },
+{ emoji: '🐊', bg: '#E0F2F1', sound: 'crocodile' },
+{ emoji: '🦘', bg: '#FFF3E0', sound: 'kangaroo' },
+{ emoji: '🐨', bg: '#E0F2F1', sound: 'koala' },
+{ emoji: '🐫', bg: '#FFF8E1', sound: 'camel' },
+{ emoji: '🦌', bg: '#EFEBE9', sound: 'deer' },
+{ emoji: '🦇', bg: '#E8EAF6', sound: 'bat' },
+{ emoji: '🦅', bg: '#FFF3E0', sound: 'eagle' },
+{ emoji: '🦜', bg: '#FCE4EC', sound: 'parrot' },
+{ emoji: '🦚', bg: '#E0F7FA', sound: 'peacock' },
+{ emoji: '🦉', bg: '#EFEBE9', sound: 'owl' },
+{ emoji: '🐧', bg: '#E3F2FD', sound: 'penguin' },
+{ emoji: '🦄', bg: '#F3E5F5', sound: 'unicorn' },
+{ emoji: '🐉', bg: '#FFEBEE', sound: 'dragon' }
+];
+const EMOTION_ITEMS = [
+{ emoji: '😊', bg: '#FFF8E1', sound: 'happy' },
+{ emoji: '😂', bg: '#FFF3E0', sound: 'laughing' },
+{ emoji: '😍', bg: '#FCE4EC', sound: 'in love' },
+{ emoji: '😮', bg: '#E8EAF6', sound: 'surprised' },
+{ emoji: '😢', bg: '#E3F2FD', sound: 'sad' },
+{ emoji: '😡', bg: '#FFEBEE', sound: 'angry' },
+{ emoji: '😨', bg: '#F3E5F5', sound: 'scared' },
+{ emoji: '😉', bg: '#E0F7FA', sound: 'winking' },
+{ emoji: '🤔', bg: '#E0F2F1', sound: 'thinking' },
+{ emoji: '😴', bg: '#F1F8E9', sound: 'sleepy' },
+{ emoji: '😎', bg: '#FFFDE7', sound: 'cool' },
+{ emoji: '😤', bg: '#F9FBE7', sound: 'determined' },
+{ emoji: '😅', bg: '#FCE4EC', sound: 'embarrassed' },
+{ emoji: '🤩', bg: '#E1F5FE', sound: 'excited' },
+{ emoji: '😌', bg: '#E8F5E9', sound: 'calm' },
+{ emoji: '😄', bg: '#FFF8E1', sound: 'smiling' },
+{ emoji: '🤭', bg: '#FCE4EC', sound: 'giggling' },
+{ emoji: '🥰', bg: '#FCE4EC', sound: 'adorable' },
+{ emoji: '😲', bg: '#E8EAF6', sound: 'amazed' },
+{ emoji: '😭', bg: '#E3F2FD', sound: 'crying' },
+{ emoji: '😝', bg: '#FFEBEE', sound: 'naughty' },
+{ emoji: '🥱', bg: '#F1F8E9', sound: 'bored' },
+{ emoji: '😳', bg: '#FCE4EC', sound: 'shy' },
+{ emoji: '😇', bg: '#E0F7FA', sound: 'proud' },
+{ emoji: '😒', bg: '#FFFDE7', sound: 'annoyed' },
+{ emoji: '😟', bg: '#E3F2FD', sound: 'worried' },
+{ emoji: '😞', bg: '#E3F2FD', sound: 'disappointed' },
+{ emoji: '😯', bg: '#E8EAF6', sound: 'curious' },
+{ emoji: '🙂', bg: '#FFF8E1', sound: 'gentle smile' },
+{ emoji: '😐', bg: '#EFEBE9', sound: 'neutral' },
+{ emoji: '🥺', bg: '#FCE4EC', sound: 'pleading' },
+{ emoji: '😬', bg: '#FFF3E0', sound: 'awkward' },
+{ emoji: '🤬', bg: '#FFEBEE', sound: 'furious' },
+{ emoji: '😱', bg: '#F3E5F5', sound: 'shocked' },
+{ emoji: '😁', bg: '#FFF8E1', sound: 'grinning' },
+{ emoji: '😜', bg: '#FFF3E0', sound: 'silly' },
+{ emoji: '😑', bg: '#EFEBE9', sound: 'expressionless' },
+{ emoji: '😆', bg: '#FFF8E1', sound: 'joyful' },
+{ emoji: '😔', bg: '#E3F2FD', sound: 'pensive' },
+{ emoji: '🙃', bg: '#FFF8E1', sound: 'upside down' },
+{ emoji: '😚', bg: '#FCE4EC', sound: 'kissing' },
+{ emoji: '😋', bg: '#FFF3E0', sound: 'yummy' },
+{ emoji: '😛', bg: '#FFF3E0', sound: 'tongue out' },
+{ emoji: '🤪', bg: '#FFF3E0', sound: 'crazy' },
+{ emoji: '🤗', bg: '#FFF8E1', sound: 'hugging' },
+{ emoji: '🤨', bg: '#EFEBE9', sound: 'suspicious' },
+{ emoji: '😕', bg: '#EFEBE9', sound: 'confused' },
+{ emoji: '🙁', bg: '#E3F2FD', sound: 'frowning' },
+{ emoji: '😖', bg: '#F3E5F5', sound: 'confounded' },
+{ emoji: '😫', bg: '#F3E5F5', sound: 'tired' },
+{ emoji: '😩', bg: '#F3E5F5', sound: 'weary' },
+{ emoji: '🥳', bg: '#FFF8E1', sound: 'party' },
+];
+const SCATTER_CONFIG = {
+maxOffsetPx: 10,
+maxRotateDeg: 7
+};
+let currentCategory = 'object';
+let currentRows = 3;
+let currentCols = 4;
+let firstCard = null;
+let secondCard = null;
+let lockBoard = false;
+let matchedPairs = 0;
+let totalPairs = 6;
+let moves = 0;
+const boardEl = document.getElementById('board');
+const pairStatusEl = document.getElementById('pairStatus');
+const moveStatusEl = document.getElementById('moveStatus');
+const winOverlayEl = document.getElementById('winOverlay');
+const winMessageEl = document.getElementById('winMessage');
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+if (audioCtx.state === 'suspended') audioCtx.resume();
+const now = audioCtx.currentTime;
+if (type === 'flip') {
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(320, now);
+osc.frequency.exponentialRampToValueAtTime(580, now + 0.08);
+gain.gain.setValueAtTime(0.15, now);
+gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+osc.connect(gain).connect(audioCtx.destination);
+osc.start(now);
+osc.stop(now + 0.08);
+} else if (type === 'match') {
+[523.25, 659.25, 783.99].forEach((freq, idx) => {
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'triangle';
+osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+gain.gain.setValueAtTime(0.2, now + idx * 0.07);
+gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.25);
+osc.connect(gain).connect(audioCtx.destination);
+osc.start(now + idx * 0.07);
+osc.stop(now + idx * 0.07 + 0.25);
+});
+} else if (type === 'wrong') {
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(240, now);
+osc.frequency.linearRampToValueAtTime(180, now + 0.18);
+gain.gain.setValueAtTime(0.12, now);
+gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+osc.connect(gain).connect(audioCtx.destination);
+osc.start(now);
+osc.stop(now + 0.18);
+} else if (type === 'win') {
+[523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'triangle';
+osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+gain.gain.setValueAtTime(0.25, now + idx * 0.12);
+gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.4);
+osc.connect(gain).connect(audioCtx.destination);
+osc.start(now + idx * 0.12);
+osc.stop(now + idx * 0.12 + 0.4);
+});
+}
+}
+function randomRange(min, max) {
+return (Math.random() * (max - min) + min).toFixed(1);
+}
+function shuffle(array) {
+const arr = [...array];
+for (let i = arr.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[arr[i], arr[j]] = [arr[j], arr[i]];
+}
+return arr;
+}
+function updateGridDimensions() {
+const isLandscape = window.innerWidth >= window.innerHeight;
+const r = isLandscape ? Math.min(currentRows, currentCols) : Math.max(currentRows, currentCols);
+const c = isLandscape ? Math.max(currentRows, currentCols) : Math.min(currentRows, currentCols);
+document.documentElement.style.setProperty('--rows', r);
+document.documentElement.style.setProperty('--cols', c);
+const rect = boardEl.getBoundingClientRect();
+const shortSide = Math.min(window.innerWidth, window.innerHeight);
+const uiScale = Math.min(1.15, Math.max(0.45, shortSide / 800));
+document.documentElement.style.setProperty('--ui-scale', uiScale.toFixed(3));
+const boardPadding = 40 * uiScale;
+const cellW = (rect.width - boardPadding) / c;
+const cellH = (rect.height - boardPadding) / r;
+const squareSize = Math.max(60, Math.floor(Math.min(cellW, cellH) * 0.90));
+document.documentElement.style.setProperty('--card-size', `${squareSize}px`);
+}
+function buildDeck(pairCount) {
+const selectedItems = [];
+for (let i = 0; i < customImages.length && selectedItems.length < pairCount; i++) {
+selectedItems.push({
+id: `img_${i}`,
+type: 'image',
+src: customImages[i],
+sound: customVoice[i] || null
+});
+}
+let rawCategoryItems;
+if (currentCategory === 'emotion') {
+rawCategoryItems = EMOTION_ITEMS;
+} else if (currentCategory === 'tinyping') {
+rawCategoryItems = tinypings;
+} else {
+rawCategoryItems = OBJECT_ITEMS;
+}
+const shuffledPool = shuffle(rawCategoryItems);
+let fallbackIdx = 0;
+while (selectedItems.length < pairCount) {
+const item = shuffledPool[fallbackIdx % shuffledPool.length];
+if (currentCategory === 'tinyping') {
+selectedItems.push({
+id: `tinyping_${item.name}_${fallbackIdx}`,
+type: 'tinyping',
+src: item.src,
+start: item.start,
+end: item.end
+});
+} else {
+selectedItems.push({
+id: `emoji_${item.emoji}_${fallbackIdx}`,
+type: 'emoji',
+emoji: item.emoji,
+bg: item.bg,
+sound: item.sound
+});
+}
+fallbackIdx++;
+}
+return shuffle([...selectedItems, ...selectedItems]);
+}
+function initGame() {
+stopConfetti();
+if (window.speechSynthesis.speaking) {
+window.speechSynthesis.cancel();
+}
+if (tinypingAudio) {
+tinypingAudio.pause();
+tinypingAudio = null;
+}
+winOverlayEl.classList.remove('show');
+updateGridDimensions();
+totalPairs = (currentRows * currentCols) / 2;
+matchedPairs = 0;
+moves = 0;
+firstCard = null;
+secondCard = null;
+lockBoard = false;
+updateStatusUI();
+const deck = buildDeck(totalPairs);
+boardEl.innerHTML = '';
+deck.forEach((item) => {
+const slot = document.createElement('div');
+slot.className = 'card-slot';
+const card = document.createElement('div');
+card.className = 'card';
+card.dataset.id = item.id;
+card.dataset.type = item.type;
+card.dataset.sound = item.sound || '';
+if (item.type === 'tinyping') {
+card.dataset.start = item.start;
+card.dataset.end = item.end;
+}
+const tx = randomRange(-SCATTER_CONFIG.maxOffsetPx, SCATTER_CONFIG.maxOffsetPx);
+const ty = randomRange(-SCATTER_CONFIG.maxOffsetPx, SCATTER_CONFIG.maxOffsetPx);
+const rot = randomRange(-SCATTER_CONFIG.maxRotateDeg, SCATTER_CONFIG.maxRotateDeg);
+card.style.setProperty('--tx', `${tx}px`);
+card.style.setProperty('--ty', `${ty}px`);
+card.style.setProperty('--rot', `${rot}deg`);
+const frontContent = (item.type === 'image' || item.type === 'tinyping')
+? `<img src="${item.src}" alt="카드 이미지">`
+: `<span class="emoji">${item.emoji}</span>`;
+const frontBg = item.type === 'emoji' ? `style="background-color: ${item.bg}"` : '';
+card.innerHTML = `
+<div class="card-inner">
+<div class="card-face card-back"></div>
+<div class="card-face card-front" ${frontBg}>
+${frontContent}
+</div>
+</div>
+`;
+card.addEventListener('pointerdown', () => onCardClick(card));
+slot.appendChild(card);
+boardEl.appendChild(slot);
+});
+}
+const TINIPYING_MP3 = 'tinipying.mp3';
+let tinypingAudio = null;
+function playCardSound(card) {
+if (card.dataset.type === 'tinyping') {
+if (tinypingAudio) {
+tinypingAudio.pause();
+tinypingAudio = null;
+}
+const start = parseFloat(card.dataset.start) || 0;
+const end = parseFloat(card.dataset.end) || 2;
+const audio = new Audio(TINIPYING_MP3);
+tinypingAudio = audio;
+audio.currentTime = start;
+audio.play().catch(() => { });
+audio.addEventListener('timeupdate', () => {
+if (audio.currentTime >= end) {
+audio.pause();
+tinypingAudio = null;
+}
+});
+return;
+}
+const sound = card.dataset.sound;
+if (!sound) return;
+if (card.dataset.type === 'image') {
+const audio = new Audio(sound);
+audio.play().catch(() => { });
+return;
+}
+if (window.speechSynthesis.speaking) {
+window.speechSynthesis.cancel();
+}
+const utterance = new SpeechSynthesisUtterance(sound);
+utterance.lang = 'en-US';
+utterance.rate = 0.9;
+const voices = window.speechSynthesis.getVoices();
+const enVoice = voices.find(v => v.lang.startsWith('en'));
+if (enVoice) utterance.voice = enVoice;
+window.speechSynthesis.speak(utterance);
+}
+function onCardClick(card) {
+if (lockBoard) return;
+if (card === firstCard) return;
+if (card.classList.contains('matched') || card.classList.contains('flipped')) return;
+playSound('flip');
+card.classList.add('flipped');
+playCardSound(card);
+if (!firstCard) {
+firstCard = card;
+return;
+}
+secondCard = card;
+moves++;
+updateStatusUI();
+checkForMatch();
+}
+function checkForMatch() {
+const isMatch = firstCard.dataset.id === secondCard.dataset.id;
+if (isMatch) {
+firstCard.classList.add('matched');
+secondCard.classList.add('matched');
+matchedPairs++;
+updateStatusUI();
+playSound('match');
+resetTurn();
+if (matchedPairs === totalPairs) {
+setTimeout(handleWin, 500);
+}
+} else {
+lockBoard = true;
+setTimeout(() => playSound('wrong'), 250);
+setTimeout(() => {
+firstCard.classList.remove('flipped');
+secondCard.classList.remove('flipped');
+resetTurn();
+}, 950);
+}
+}
+function resetTurn() {
+[firstCard, secondCard] = [null, null];
+lockBoard = false;
+}
+function updateStatusUI() {
+pairStatusEl.textContent = `찾은 짝: ${matchedPairs} / ${totalPairs}`;
+moveStatusEl.textContent = `시도: ${moves}번`;
+}
+function peekCards() {
+if (lockBoard) return;
+lockBoard = true;
+const allCards = document.querySelectorAll('.card:not(.matched)');
+allCards.forEach(c => c.classList.add('flipped'));
+playSound('flip');
+setTimeout(() => {
+allCards.forEach(c => {
+if (c !== firstCard) c.classList.remove('flipped');
+});
+lockBoard = false;
+}, 15000);
+}
+function handleWin() {
+playSound('win');
+winMessageEl.textContent = `${moves}번 만에 모든 짝을 다 찾았어요!`;
+winOverlayEl.classList.add('show');
+startConfetti();
+}
+document.querySelectorAll('.diff-btn').forEach(btn => {
+btn.addEventListener('click', () => {
+document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+currentRows = parseInt(btn.dataset.r, 10);
+currentCols = parseInt(btn.dataset.c, 10);
+initGame();
+});
+});
+document.querySelectorAll('.cat-btn').forEach(btn => {
+btn.addEventListener('click', () => {
+document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+currentCategory = btn.dataset.category;
+initGame();
+});
+});
+document.getElementById('restartBtn').addEventListener('click', initGame);
+document.getElementById('playAgainBtn').addEventListener('click', initGame);
+document.getElementById('peekBtn').addEventListener('click', peekCards);
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+function toggleFullscreen() {
+const isFullscreen = document.fullscreenElement ||
+document.webkitFullscreenElement ||
+document.mozFullScreenElement ||
+document.msFullscreenElement;
+if (!isFullscreen) {
+const el = document.documentElement;
+if (el.requestFullscreen) {
+el.requestFullscreen();
+} else if (el.webkitRequestFullscreen) {
+el.webkitRequestFullscreen();
+} else if (el.mozRequestFullScreen) {
+el.mozRequestFullScreen();
+} else if (el.msRequestFullscreen) {
+el.msRequestFullscreen();
+}
+fullscreenBtn.textContent = '⛶ 전체화면 종료';
+} else {
+if (document.exitFullscreen) {
+document.exitFullscreen();
+} else if (el.webkitExitFullscreen) {
+document.webkitExitFullscreen();
+} else if (el.mozCancelFullScreen) {
+document.mozCancelFullScreen();
+} else if (el.msExitFullscreen) {
+document.msExitFullscreen();
+}
+fullscreenBtn.textContent = '⛶ 전체화면';
+}
+setTimeout(updateGridDimensions, 300);
+}
+fullscreenBtn.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+fullscreenBtn.textContent = document.fullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
+setTimeout(updateGridDimensions, 300);
+});
+document.addEventListener('webkitfullscreenchange', () => {
+fullscreenBtn.textContent = document.webkitFullscreenElement ? '⛶ 전체화면 종료' : '⛶ 전체화면';
+setTimeout(updateGridDimensions, 300);
+});
+document.getElementById('imageUpload').addEventListener('change', (e) => {
+const files = Array.from(e.target.files);
+if (files.length === 0) return;
+customImages = files.map(file => URL.createObjectURL(file));
+initGame();
+});
+window.addEventListener('resize', updateGridDimensions);
+new ResizeObserver(updateGridDimensions).observe(boardEl);
+if ('speechSynthesis' in window) {
+window.speechSynthesis.onvoiceschanged = () => {
+};
+}
+const canvas = document.getElementById('confettiCanvas');
+const ctx = canvas.getContext('2d');
+let confettiPieces = [];
+let confettiAnimId = null;
+function startConfetti() {
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const colors = ['#ff5252', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc', '#ff7043'];
+confettiPieces = Array.from({ length: 120 }, () => ({
+x: Math.random() * canvas.width,
+y: Math.random() * canvas.height - canvas.height,
+w: Math.random() * 14 + 8,
+h: Math.random() * 10 + 6,
+color: colors[Math.floor(Math.random() * colors.length)],
+vy: Math.random() * 4 + 2.5,
+vx: Math.random() * 3 - 1.5,
+angle: Math.random() * 360,
+vAngle: Math.random() * 6 - 3
+}));
+renderConfetti();
+}
+function renderConfetti() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+confettiPieces.forEach(p => {
+p.y += p.vy;
+p.x += p.vx;
+p.angle += p.vAngle;
+if (p.y > canvas.height) p.y = -20;
+ctx.save();
+ctx.translate(p.x, p.y);
+ctx.rotate((p.angle * Math.PI) / 180);
+ctx.fillStyle = p.color;
+ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+ctx.restore();
+});
+confettiAnimId = requestAnimationFrame(renderConfetti);
+}
+function stopConfetti() {
+if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+initGame();
+</script>
+</body>
+</html>

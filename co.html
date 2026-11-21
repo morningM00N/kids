@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>서율·유민·하린 짝꿍 맞추기! 🌈</title>
+  <style>
+    /* =========================================================================
+       1. 기본 리셋 및 27인치 태블릿 터치 최적화 (외부 리소스 0%)
+    ========================================================================= */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: 'NanumSquareRound', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+      background: #FFFDF8;
+      color: #3E2723;
+      touch-action: manipulation;
+    }
+
+    /* =========================================================================
+       2. 상단 중앙 슬림 플로팅 유틸리티 바 (HUD)
+    ========================================================================= */
+    .floating-hud {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      gap: clamp(5px, 0.7vw, 10px);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 3px solid rgba(255, 255, 255, 0.98);
+      box-shadow: 0 6px 20px rgba(93, 64, 55, 0.14);
+      max-width: 97vw;
+      white-space: nowrap;
+    }
+
+    .hud-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 900;
+      font-size: clamp(0.8rem, 1.2vw, 1.08rem);
+      padding: 5px 11px;
+      border-radius: 999px;
+      line-height: 1;
+    }
+
+    .hud-round {
+      background: #F1F5F9;
+      color: #475569;
+    }
+
+    .hud-stars {
+      background: linear-gradient(135deg, #FEF08A, #FACC15);
+      color: #854D0E;
+      box-shadow: 0 2px 0 #CA8A04;
+    }
+
+    .hud-stars.bump {
+      animation: starBump 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .hud-divider {
+      width: 2px;
+      height: 20px;
+      background: #E2E8F0;
+      border-radius: 2px;
+    }
+
+    .hud-btn {
+      height: clamp(32px, 3.8vh, 42px);
+      min-width: clamp(32px, 3.8vh, 42px);
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 2px solid #E2E8F0;
+      background: #FFFFFF;
+      color: #334155;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: clamp(0.8rem, 1.15vw, 1.02rem);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #CBD5E1;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.2s;
+    }
+
+    .hud-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #CBD5E1;
+    }
+
+    .hud-btn.is-off {
+      background: #FFE4E6;
+      border-color: #FECDD3;
+      box-shadow: 0 3px 0 #FDA4AF;
+    }
+
+    .hud-btn-theme {
+      background: linear-gradient(135deg, #FFF1F2, #FEF3C7);
+      border-color: #FDBA74;
+      color: #C2410C;
+      box-shadow: 0 3px 0 #FB923C;
+      padding: 0 12px;
+    }
+
+    .hud-btn-seat {
+      background: linear-gradient(135deg, #FCE7F3, #E0F2FE);
+      border-color: #F9A8D4;
+      color: #BE185D;
+      box-shadow: 0 3px 0 #F472B6;
+      padding: 0 12px;
+    }
+
+    /* =========================================================================
+       3. 전체화면 100vw x 100vh 가로 3분할 보드
+    ========================================================================= */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    .zone {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      transition: filter 0.35s ease, opacity 0.35s ease;
+    }
+
+    /* 3개 구역 파스텔 배경 + 깔끔한 구분선 */
+    .zone[data-zone="0"] {
+      background: linear-gradient(180deg, #FFF0F5 0%, #FFE4EE 100%);
+      border-right: 5px dashed rgba(255, 255, 255, 0.95);
+    }
+
+    .zone[data-zone="1"] {
+      background: linear-gradient(180deg, #FFFBE6 0%, #FFF2C2 100%);
+      border-right: 5px dashed rgba(255, 255, 255, 0.95);
+    }
+
+    .zone[data-zone="2"] {
+      background: linear-gradient(180deg, #EDF6FF 0%, #D9EEFF 100%);
+    }
+
+    /* 비활성 영역: 확실한 반투명 처리 & 클릭 완전 차단 */
+    .zone.is-waiting {
+      pointer-events: none;
+      opacity: 0.45;
+      filter: saturate(0.55);
+    }
+
+    .zone.is-done {
+      pointer-events: none;
+      opacity: 0.62;
+      filter: saturate(0.8);
+    }
+
+    /* 활성 영역: 선명하고 밝은 강조 테두리 */
+    .zone.is-active {
+      pointer-events: auto;
+      opacity: 1;
+      filter: none;
+      z-index: 10;
+    }
+
+    .zone.is-active::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 40;
+      animation: activeGlow 1.5s infinite ease-in-out;
+    }
+
+    .zone[data-zone="0"].is-active::after {
+      box-shadow: inset 0 0 0 8px #FF5C8A, inset 0 0 36px rgba(255, 92, 138, 0.28);
+    }
+
+    .zone[data-zone="1"].is-active::after {
+      box-shadow: inset 0 0 0 8px #F59E0B, inset 0 0 36px rgba(245, 158, 11, 0.28);
+    }
+
+    .zone[data-zone="2"].is-active::after {
+      box-shadow: inset 0 0 0 8px #3B82F6, inset 0 0 36px rgba(59, 130, 246, 0.28);
+    }
+
+    /* =========================================================================
+       4. 각 영역 상단 타겟 팝업 배너
+    ========================================================================= */
+    .zone-top-banner {
+      position: absolute;
+      top: clamp(58px, 7.2vh, 74px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 45;
+      width: 90%;
+      max-width: 460px;
+      min-height: clamp(68px, 10vh, 108px);
+      padding: 8px 16px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 4px solid #FFFFFF;
+      box-shadow: 0 7px 18px rgba(93, 64, 55, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(8px, 1vw, 16px);
+      pointer-events: none;
+    }
+
+    .role-chip-title {
+      font-size: clamp(1rem, 1.65vw, 1.85rem);
+      font-weight: 900;
+      color: #5D4037;
+      text-align: center;
+      word-break: keep-all;
+      line-height: 1.2;
+    }
+
+    .zone-top-banner.is-target-popup {
+      background: #FFFFFF;
+      border-color: #FF8A65;
+      box-shadow: 0 7px 0 rgba(255, 138, 101, 0.28), 0 12px 24px rgba(255, 92, 138, 0.16);
+      animation: targetPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .zone.is-active .zone-top-banner.is-target-popup {
+      border-color: #FF4D88;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FFF5F8 100%);
+      box-shadow: 0 7px 0 rgba(255, 77, 136, 0.25), 0 14px 28px rgba(255, 77, 136, 0.22);
+    }
+
+    .zone-top-banner.is-target-popup::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 16px;
+      height: 16px;
+      background: inherit;
+      border-right: 4px solid;
+      border-bottom: 4px solid;
+      border-color: inherit;
+    }
+
+    .target-emoji {
+      font-size: clamp(56px, 7.2vh, 80px);
+      line-height: 1;
+      filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.14));
+      flex-shrink: 0;
+    }
+
+    .target-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .target-name {
+      font-size: clamp(1.15rem, 1.85vw, 2rem);
+      font-weight: 900;
+      color: #1E293B;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .target-prompt {
+      font-size: clamp(0.88rem, 1.3vw, 1.38rem);
+      font-weight: 900;
+      color: #FF4D88;
+      line-height: 1.22;
+      word-break: keep-all;
+    }
+
+    /* =========================================================================
+       5. 각 영역 하단 어린이 얼굴 프로필 & 이름표 (서율·유민·하린)
+    ========================================================================= */
+    .zone-player-dock {
+      position: absolute;
+      bottom: clamp(10px, 1.6vh, 18px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 46;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(10px, 1.2vw, 16px);
+      padding: 8px 18px 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 4px solid #FFFFFF;
+      box-shadow: 0 8px 20px rgba(93, 64, 55, 0.14);
+      pointer-events: none;
+      max-width: 92%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .zone.is-active .zone-player-dock {
+      border-color: var(--player-color, #FF5C8A);
+      background: #FFFFFF;
+      box-shadow:
+        0 0 0 6px rgba(255, 255, 255, 0.8),
+        0 0 28px var(--player-glow, rgba(255, 92, 138, 0.55)),
+        0 10px 22px rgba(0, 0, 0, 0.16);
+      animation: dockBounce 1.35s infinite ease-in-out;
+    }
+
+    .zone.is-done .zone-player-dock {
+      border-color: #4ADE80;
+      background: #F0FDF4;
+    }
+
+    .player-avatar-wrap {
+      position: relative;
+      width: clamp(78px, 9.2vh, 94px);
+      height: clamp(78px, 9.2vh, 94px);
+      border-radius: 50%;
+      border: 5px solid #FFFFFF;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--player-color, #FF8FAB);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .zone.is-active .player-avatar-wrap {
+      box-shadow: 0 0 0 4px var(--player-color, #FF8FAB), 0 6px 14px rgba(0, 0, 0, 0.18);
+    }
+
+    .player-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: relative;
+      z-index: 2;
+    }
+
+    .player-avatar-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--player-color, #FF8FAB);
+      color: #FFFFFF;
+      z-index: 1;
+      line-height: 1;
+    }
+
+    .player-avatar-fallback .fb-emoji {
+      font-size: clamp(2rem, 4.2vh, 2.6rem);
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.15));
+    }
+
+    .player-avatar-fallback .fb-initial {
+      font-size: clamp(0.85rem, 1.3vh, 1.05rem);
+      font-weight: 900;
+      margin-top: 2px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .player-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .player-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .player-name-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 14px;
+      border-radius: 999px;
+      background: var(--player-color, #FF8FAB);
+      color: #FFFFFF;
+      font-weight: 900;
+      font-size: clamp(1.1rem, 1.75vw, 1.65rem);
+      line-height: 1.1;
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+      white-space: nowrap;
+    }
+
+    .player-turn-badge {
+      font-weight: 900;
+      font-size: clamp(0.86rem, 1.25vw, 1.22rem);
+      color: #64748B;
+      white-space: nowrap;
+      padding-left: 2px;
+    }
+
+    .zone.is-active .player-turn-badge {
+      color: #FF4D88;
+    }
+
+    .zone.is-done .player-turn-badge {
+      color: #16A34A;
+    }
+
+    /* 버블 자유 배치 무대 */
+    .zone-playground {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 20;
+    }
+
+    /* =========================================================================
+       6. 3D 캔디 스티커 버블 버튼 (자유 배치 & 둥실둥실 애니메이션)
+    ========================================================================= */
+    .bubble-btn {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-radius: 36%;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FFFBF5 100%);
+      border: 6px solid #FFFFFF;
+      cursor: pointer;
+      box-shadow:
+        0 10px 0 rgba(141, 110, 99, 0.25),
+        0 16px 28px rgba(0, 0, 0, 0.12);
+      transform: translate(-50%, -50%) rotate(var(--tilt, 0deg));
+      animation: floatBob var(--bob-dur, 3.2s) ease-in-out var(--bob-delay, 0s) infinite;
+      transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.14s ease, border-color 0.2s;
+      padding: 6px;
+      z-index: 22;
+    }
+
+    .zone.is-active .bubble-btn:active {
+      transform: translate(-50%, -44%) rotate(var(--tilt, 0deg)) scale(0.92);
+      box-shadow: 0 3px 0 rgba(141, 110, 99, 0.25), 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .bubble-emoji {
+      font-size: var(--emoji-size, 62px);
+      line-height: 1.05;
+      filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.12));
+      pointer-events: none;
+    }
+
+    .bubble-svg {
+      width: 66%;
+      height: 62%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .bubble-svg svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .bubble-label {
+      font-size: var(--label-size, 17px);
+      font-weight: 900;
+      color: #3E2723;
+      line-height: 1.1;
+      text-align: center;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .bubble-btn.is-picked {
+      border-color: #22C55E;
+      background: #F0FDF4;
+      box-shadow: 0 9px 0 #16A34A, 0 0 26px rgba(34, 197, 94, 0.55);
+      z-index: 38;
+      animation: none;
+      transform: translate(-50%, -50%) rotate(0deg) scale(1.08);
+    }
+
+    .bubble-btn.is-picked::after {
+      content: "✅";
+      position: absolute;
+      top: -10px;
+      right: -8px;
+      font-size: clamp(1.5rem, 2.6vh, 2.3rem);
+      filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.2));
+      animation: popScale 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .bubble-btn.is-wrong {
+      animation: wobbleWrong 0.45s ease-in-out !important;
+      border-color: #FDA4AF;
+      background: #FFF1F2;
+    }
+
+    .bubble-btn.is-hint {
+      border-color: #FBBF24;
+      background: #FFFBEB;
+      animation: goldenHint 1.05s infinite ease-in-out !important;
+    }
+
+    .bubble-btn.is-hint::before {
+      content: "✨";
+      position: absolute;
+      top: -14px;
+      left: -10px;
+      font-size: clamp(1.4rem, 2.4vh, 2.2rem);
+      animation: popScale 0.8s infinite alternate;
+    }
+
+    /* =========================================================================
+       7. 자리 배치 선택 모달 (👧 자리)
+    ========================================================================= */
+    .seat-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      background: rgba(30, 41, 59, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 16px;
+    }
+
+    .seat-modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .seat-modal-card {
+      background: #FFFFFF;
+      border: 6px solid #F9A8D4;
+      border-radius: 36px;
+      padding: clamp(20px, 3vh, 34px) clamp(20px, 3vw, 40px);
+      width: min(860px, 94vw);
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .seat-modal-overlay.show .seat-modal-card {
+      transform: scale(1);
+    }
+
+    .seat-modal-title {
+      font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+      font-weight: 900;
+      color: #BE185D;
+      text-align: center;
+    }
+
+    .seat-modal-sub {
+      font-size: clamp(0.92rem, 1.3vw, 1.15rem);
+      font-weight: 700;
+      color: #64748B;
+      margin-top: -10px;
+      text-align: center;
+    }
+
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(10px, 1.8vw, 22px);
+      width: 100%;
+    }
+
+    .seat-slot-card {
+      border-radius: 28px;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      border: 4px solid #FFFFFF;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .seat-slot-card[data-slot="0"] { background: #FFF0F5; border-color: #FBCFE8; }
+    .seat-slot-card[data-slot="1"] { background: #FFFBE6; border-color: #FDE68A; }
+    .seat-slot-card[data-slot="2"] { background: #EDF6FF; border-color: #BFDBFE; }
+
+    .seat-slot-label {
+      font-size: clamp(1rem, 1.5vw, 1.35rem);
+      font-weight: 900;
+      color: #475569;
+      background: #FFFFFF;
+      padding: 4px 14px;
+      border-radius: 999px;
+    }
+
+    .seat-preview-avatar {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      border: 4px solid #FFFFFF;
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.14);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .seat-preview-name {
+      font-size: clamp(1.2rem, 1.8vw, 1.6rem);
+      font-weight: 900;
+      color: #1E293B;
+    }
+
+    .seat-pick-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .seat-pick-btn {
+      flex: 1;
+      min-width: 60px;
+      padding: 9px 6px;
+      border-radius: 16px;
+      border: 3px solid #E2E8F0;
+      background: #FFFFFF;
+      color: #475569;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: clamp(0.9rem, 1.25vw, 1.12rem);
+      cursor: pointer;
+      transition: transform 0.12s, background 0.15s, border-color 0.15s;
+    }
+
+    .seat-pick-btn:active {
+      transform: scale(0.94);
+    }
+
+    .seat-pick-btn.is-selected {
+      color: #FFFFFF;
+      border-color: transparent;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .seat-done-btn {
+      background: linear-gradient(180deg, #4ADE80 0%, #22C55E 100%);
+      color: #FFFFFF;
+      border: 4px solid #FFFFFF;
+      border-radius: 999px;
+      padding: 12px 48px;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: clamp(1.2rem, 1.9vw, 1.65rem);
+      cursor: pointer;
+      box-shadow: 0 6px 0 #15803D, 0 10px 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .seat-done-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #15803D;
+    }
+
+    /* =========================================================================
+       8. 친근한 오답 피드백 말풍선 & 축하 오버레이
+    ========================================================================= */
+    .feedback-toast {
+      position: fixed;
+      top: clamp(64px, 8.2vh, 86px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-16px);
+      z-index: 80;
+      background: #FFFFFF;
+      color: #EA580C;
+      border: 4px solid #FDBA74;
+      padding: 10px 26px;
+      border-radius: 999px;
+      font-size: clamp(1rem, 1.7vw, 1.6rem);
+      font-weight: 900;
+      box-shadow: 0 10px 26px rgba(234, 88, 12, 0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      white-space: nowrap;
+    }
+
+    .feedback-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(255, 251, 235, 0.88);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    .celebration-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #confettiCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .celebration-card {
+      position: relative;
+      z-index: 10;
+      background: #FFFFFF;
+      border: 8px solid #FDE047;
+      border-radius: 44px;
+      padding: clamp(18px, 3vh, 36px) clamp(24px, 4.2vw, 56px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(10px, 1.7vh, 18px);
+      box-shadow: 0 22px 54px rgba(234, 179, 8, 0.3), 0 12px 0 #FACC15;
+      transform: scale(0.72);
+      transition: transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 93vw;
+      text-align: center;
+    }
+
+    .celebration-overlay.show .celebration-card {
+      transform: scale(1);
+    }
+
+    .cel-showcase {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(8px, 1.8vw, 22px);
+    }
+
+    .cel-plus {
+      font-size: clamp(1.6rem, 3vw, 2.6rem);
+      font-weight: 900;
+      color: #F59E0B;
+    }
+
+    .cel-trio-item {
+      position: relative;
+      width: clamp(96px, 14.5vh, 152px);
+      height: clamp(106px, 16vh, 166px);
+      border-radius: 30%;
+      background: #FFFDF5;
+      border: 5px solid #FDE68A;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 8px 0 rgba(245, 158, 11, 0.22);
+      animation: badgeBounce 0.85s infinite ease-in-out;
+    }
+
+    .cel-trio-item:nth-child(3) { animation-delay: 0.16s; }
+    .cel-trio-item:nth-child(5) { animation-delay: 0.32s; }
+
+    .cel-trio-visual {
+      width: clamp(58px, 8.8vh, 94px);
+      height: clamp(58px, 8.8vh, 94px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(3rem, 7.2vh, 4.9rem);
+      line-height: 1;
+      filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.14));
+    }
+
+    .cel-trio-visual svg {
+      width: 92%;
+      height: 92%;
+    }
+
+    .cel-trio-label {
+      font-size: clamp(0.9rem, 1.45vw, 1.35rem);
+      font-weight: 900;
+      color: #3E2723;
+      white-space: nowrap;
+    }
+
+    .cel-title {
+      font-size: clamp(1.4rem, 2.9vw, 2.7rem);
+      font-weight: 900;
+      color: #FF4D88;
+      text-shadow: 3px 3px 0 #FFE4EC;
+    }
+
+    .cel-sub {
+      font-size: clamp(1rem, 1.65vw, 1.6rem);
+      font-weight: 800;
+      color: #0284C7;
+      background: #E0F2FE;
+      padding: 6px 22px;
+      border-radius: 999px;
+    }
+
+    /* 축하 카드 하단 서율·유민·하린 미니 응원 프로필 */
+    .cel-cheer-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(14px, 2.5vw, 32px);
+      margin-top: 2px;
+    }
+
+    .cel-cheer-kid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      animation: cheerJump 0.9s infinite ease-in-out;
+    }
+
+    .cel-cheer-kid:nth-child(2) { animation-delay: 0.18s; }
+    .cel-cheer-kid:nth-child(3) { animation-delay: 0.36s; }
+
+    .cel-cheer-avatar {
+      position: relative;
+      width: clamp(56px, 7.6vh, 74px);
+      height: clamp(56px, 7.6vh, 74px);
+      border-radius: 50%;
+      border: 4px solid #FFFFFF;
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.16);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cel-cheer-avatar .fb-emoji {
+      font-size: clamp(1.6rem, 3.2vh, 2.1rem);
+    }
+
+    .cel-cheer-name {
+      font-size: clamp(0.85rem, 1.2vw, 1.1rem);
+      font-weight: 900;
+      color: #FFFFFF;
+      padding: 2px 10px;
+      border-radius: 999px;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+    }
+
+    .next-btn {
+      background: linear-gradient(180deg, #4ADE80 0%, #22C55E 100%);
+      color: #FFFFFF;
+      border: 5px solid #FFFFFF;
+      border-radius: 999px;
+      padding: clamp(12px, 1.8vh, 20px) clamp(38px, 4.6vw, 68px);
+      font-family: inherit;
+      font-weight: 900;
+      font-size: clamp(1.3rem, 2.3vw, 2.2rem);
+      cursor: pointer;
+      box-shadow: 0 8px 0 #15803D, 0 14px 24px rgba(34, 197, 94, 0.35);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .next-btn:active {
+      transform: translateY(5px);
+      box-shadow: 0 3px 0 #15803D;
+    }
+
+    .cel-tap-hint {
+      font-size: clamp(0.82rem, 1.15vw, 1rem);
+      color: #94A3B8;
+      font-weight: 700;
+    }
+
+    /* =========================================================================
+       9. 키프레임 애니메이션
+    ========================================================================= */
+    @keyframes activeGlow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.52; }
+    }
+
+    @keyframes floatBob {
+      0%, 100% { transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) translateY(0px); }
+      50% { transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) translateY(-8px); }
+    }
+
+    @keyframes dockBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-6px); }
+    }
+
+    @keyframes targetPop {
+      0% { transform: translateX(-50%) scale(0.68); opacity: 0.35; }
+      70% { transform: translateX(-50%) scale(1.05); opacity: 1; }
+      100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    }
+
+    @keyframes wobbleWrong {
+      0%, 100% { transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)); }
+      20% { transform: translate(calc(-50% - 12px), -50%) rotate(-9deg); }
+      40% { transform: translate(calc(-50% + 12px), -50%) rotate(9deg); }
+      60% { transform: translate(calc(-50% - 8px), -50%) rotate(-5deg); }
+      80% { transform: translate(calc(-50% + 8px), -50%) rotate(5deg); }
+    }
+
+    @keyframes goldenHint {
+      0%, 100% {
+        transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) scale(1);
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.85), 0 10px 0 rgba(217, 119, 6, 0.35);
+      }
+      50% {
+        transform: translate(-50%, -50%) rotate(var(--tilt, 0deg)) scale(1.09);
+        box-shadow: 0 0 28px 13px rgba(251, 191, 36, 0.88), 0 10px 0 rgba(217, 119, 6, 0.35);
+      }
+    }
+
+    @keyframes popScale {
+      0% { transform: scale(0.45); }
+      70% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes starBump {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.32) rotate(-8deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    @keyframes badgeBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes cheerJump {
+      0%, 100% { transform: translateY(0) scale(1); }
+      45% { transform: translateY(-10px) scale(1.06); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 중앙 슬림 플로팅 유틸리티 바 -->
+  <header class="floating-hud">
+    <div class="hud-pill hud-round">🎯 <span id="roundNum">1</span>판</div>
+    <div class="hud-pill hud-stars" id="hudStars">⭐ <span id="starCountNum">0</span></div>
+    <div class="hud-divider"></div>
+    <button type="button" id="themeBtn" class="hud-btn hud-btn-theme" title="테마 바꾸기">🎲 모두 섞기</button>
+    <button type="button" id="seatBtn" class="hud-btn hud-btn-seat" title="서율·유민·하린 자리 바꾸기">👧 자리</button>
+    <div class="hud-divider"></div>
+    <button type="button" id="soundBtn" class="hud-btn" title="효과음 켜기/끄기">🔊</button>
+    <button type="button" id="voiceBtn" class="hud-btn" title="목소리 안내 켜기/끄기">🗣️</button>
+    <button type="button" id="fullscreenBtn" class="hud-btn" title="전체화면 켜기/끄기">⛶</button>
+  </header>
+
+  <!-- 전체화면 100vw x 100vh 가로 3분할 보드 -->
+  <main class="board" id="board">
+    <section class="zone" data-zone="0" id="zone0">
+      <div class="zone-top-banner" id="topBanner0"></div>
+      <div class="zone-playground" id="play0"></div>
+      <div class="zone-player-dock" id="playerDock0"></div>
+    </section>
+    <section class="zone" data-zone="1" id="zone1">
+      <div class="zone-top-banner" id="topBanner1"></div>
+      <div class="zone-playground" id="play1"></div>
+      <div class="zone-player-dock" id="playerDock1"></div>
+    </section>
+    <section class="zone" data-zone="2" id="zone2">
+      <div class="zone-top-banner" id="topBanner2"></div>
+      <div class="zone-playground" id="play2"></div>
+      <div class="zone-player-dock" id="playerDock2"></div>
+    </section>
+  </main>
+
+  <!-- 친근한 오답 안내 말풍선 -->
+  <div id="feedbackToast" class="feedback-toast">어라? 다시 찾아볼까? 😊</div>
+
+  <!-- 자리 배치 선택 모달 -->
+  <div id="seatModalOverlay" class="seat-modal-overlay">
+    <div class="seat-modal-card" id="seatModalCard">
+      <div class="seat-modal-title">👧 서율 · 유민 · 하린 자리 정하기</div>
+      <div class="seat-modal-sub">각 자리에 설 친구 이름을 누르면 자동으로 자리가 바뀌어요!</div>
+      <div class="seat-grid" id="seatGrid"></div>
+      <button type="button" id="seatDoneBtn" class="seat-done-btn">완료! 놀자 🎉</button>
+    </div>
+  </div>
+
+  <!-- 성공 축하 오버레이 -->
+  <div id="celebrationOverlay" class="celebration-overlay">
+    <canvas id="confettiCanvas"></canvas>
+    <div class="celebration-card" id="celebrationCard">
+      <div class="cel-showcase">
+        <div class="cel-trio-item">
+          <div class="cel-trio-visual" id="celVisual0">🐰</div>
+          <div class="cel-trio-label" id="celLabel0">토끼</div>
+        </div>
+        <div class="cel-plus">+</div>
+        <div class="cel-trio-item">
+          <div class="cel-trio-visual" id="celVisual1">🥕</div>
+          <div class="cel-trio-label" id="celLabel1">당근</div>
+        </div>
+        <div class="cel-plus">+</div>
+        <div class="cel-trio-item">
+          <div class="cel-trio-visual" id="celVisual2">🐾</div>
+          <div class="cel-trio-label" id="celLabel2">동물</div>
+        </div>
+      </div>
+      <div class="cel-title" id="celTitle">우와! 토끼, 당근, 동물! 🎉</div>
+      <div class="cel-sub" id="celSub">서율, 유민, 하린! 우리 셋이 최고야! ⭐</div>
+      <div class="cel-cheer-row" id="celCheerRow"></div>
+      <button type="button" id="nextRoundBtn" class="next-btn">다음 판 놀기! 🎉</button>
+      <div class="cel-tap-hint" id="celTapHint">신나게 축하해요! 🎉</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =========================================================================
+         1. 세 아이 프로필(서율·유민·하린) & 한국어 조사 자동 처리 유틸
+      ========================================================================= */
+      const PLAYERS = [
+        { id: 'seoyul', name: '서율', img: 'img/1.jpg', fallbackEmoji: '🐰', badgeColor: '#FF8FAB', glow: 'rgba(255, 143, 171, 0.58)' },
+        { id: 'yumin',  name: '유민', img: 'img/2.jpg', fallbackEmoji: '🐻', badgeColor: '#FFB703', glow: 'rgba(255, 183, 3, 0.58)' },
+        { id: 'harin',  name: '하린', img: 'img/3.jpg', fallbackEmoji: '🐱', badgeColor: '#4EA8DE', glow: 'rgba(78, 168, 222, 0.58)' }
+      ];
+
+      const SEAT_LABELS = ['왼쪽 자리', '가운데 자리', '오른쪽 자리'];
+      const STORAGE_KEY_SEATS = 'coop_matching_seats_v1';
+
+      function getPlayerById(pid) {
+        for (let i = 0; i < PLAYERS.length; i++) {
+          if (PLAYERS[i].id === pid) return PLAYERS[i];
+        }
+        return PLAYERS[0];
+      }
+
+      // 한글 받침 여부 판별 (서율/유민/하린 모두 받침 있음 -> 서율아, 서율이가 등 자연스럽게 처리)
+      function hasBatchim(word) {
+        if (!word) return false;
+        const code = word.charCodeAt(word.length - 1);
+        if (code < 0xAC00 || code > 0xD7A3) return false;
+        return (code - 0xAC00) % 28 !== 0;
+      }
+
+      function callKid(name) {
+        return name + (hasBatchim(name) ? '아' : '야');
+      }
+
+      function particleWa(word) {
+        return word + (hasBatchim(word) ? '과' : '와');
+      }
+
+      function particleEun(word) {
+        return word + (hasBatchim(word) ? '은' : '는');
+      }
+
+      function particleIga(word) {
+        return word + (hasBatchim(word) ? '이' : '가');
+      }
+
+      // 사진 로드 실패 시 깨진 아이콘 없이 귀여운 아바타로 자동 대체하는 HTML 생성
+      function buildAvatarHtml(player, showInitial) {
+        const initialHtml = showInitial ? '<span class="fb-initial">' + player.name.charAt(0) + '</span>' : '';
+        return (
+          '<div class="player-avatar-fallback" style="background:' + player.badgeColor + ';">' +
+            '<span class="fb-emoji">' + player.fallbackEmoji + '</span>' +
+            initialHtml +
+          '</div>' +
+          '<img class="player-avatar-img" src="' + player.img + '" alt="' + player.name + '" onerror="this.style.display=\'none\';" />'
+        );
+      }
+
+      function loadSavedSeats() {
+        const defaults = ['seoyul', 'yumin', 'harin'];
+        try {
+          const raw = window.localStorage.getItem(STORAGE_KEY_SEATS);
+          if (!raw) return defaults;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length === 3) {
+            const validIds = ['seoyul', 'yumin', 'harin'];
+            const seen = {};
+            let ok = true;
+            for (let i = 0; i < 3; i++) {
+              if (validIds.indexOf(parsed[i]) === -1 || seen[parsed[i]]) {
+                ok = false;
+                break;
+              }
+              seen[parsed[i]] = true;
+            }
+            if (ok) return parsed;
+          }
+        } catch (e) {}
+        return defaults;
+      }
+
+      function saveSeats(seats) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY_SEATS, JSON.stringify(seats));
+        } catch (e) {}
+      }
+
+      /* =========================================================================
+         2. 귀여운 인라인 SVG 에셋 (물감 방울 색깔 9종 & 중립 크림색 도형 6종)
+      ========================================================================= */
+      function kawaiiFace(cx, cy, scale, eyeColor) {
+        const s = scale || 1;
+        const ec = eyeColor || '#5D4037';
+        return (
+          '<g transform="translate(' + cx + ',' + cy + ') scale(' + s + ')">' +
+          '<circle cx="-11" cy="-3" r="3.6" fill="' + ec + '"/>' +
+          '<circle cx="-12.2" cy="-4.3" r="1.3" fill="#FFFFFF"/>' +
+          '<circle cx="11" cy="-3" r="3.6" fill="' + ec + '"/>' +
+          '<circle cx="9.8" cy="-4.3" r="1.3" fill="#FFFFFF"/>' +
+          '<ellipse cx="-17" cy="2.5" rx="4.5" ry="2.6" fill="#FF8FAB" opacity="0.72"/>' +
+          '<ellipse cx="17" cy="2.5" rx="4.5" ry="2.6" fill="#FF8FAB" opacity="0.72"/>' +
+          '<path d="M -5.2 1.2 Q 0 7.2 5.2 1.2" fill="none" stroke="' + ec + '" stroke-width="2.9" stroke-linecap="round"/>' +
+          '</g>'
+        );
+      }
+
+      const COLORS = {
+        red:    { id: 'red',    name: '빨강', hex: '#FF4D4D', light: '#FF9E9E', dark: '#C62828' },
+        orange: { id: 'orange', name: '주황', hex: '#FF9429', light: '#FFC582', dark: '#D9480F' },
+        yellow: { id: 'yellow', name: '노랑', hex: '#FFD93D', light: '#FFF4A3', dark: '#D99B00' },
+        green:  { id: 'green',  name: '초록', hex: '#4CC964', light: '#9CEAA9', dark: '#2B8A3E' },
+        blue:   { id: 'blue',   name: '파랑', hex: '#3B9EFF', light: '#A8D4FF', dark: '#1864AB' },
+        purple: { id: 'purple', name: '보라', hex: '#9B6BFF', light: '#D2BDFF', dark: '#6741D9' },
+        pink:   { id: 'pink',   name: '분홍', hex: '#FF7EB6', light: '#FFC4DE', dark: '#D6336C' },
+        brown:  { id: 'brown',  name: '갈색', hex: '#A66A38', light: '#D8A679', dark: '#6B3E26' },
+        white:  { id: 'white',  name: '하양', hex: '#FFFFFF', light: '#E2E8F0', dark: '#94A3B8' }
+      };
+
+      function getColorSvg(colorId) {
+        const c = COLORS[colorId] || COLORS.red;
+        const sparkle = colorId === 'white' ? '#CBD5E1' : '#FFFFFF';
+        const eyeCol = colorId === 'brown' ? '#3E2723' : '#4E342E';
+        return (
+          '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M50 8 C50 8 84 43 84 64 C84 82 69 93 50 93 C31 93 16 82 16 64 C16 43 50 8 50 8 Z"' +
+          ' fill="' + c.hex + '" stroke="' + c.dark + '" stroke-width="5" stroke-linejoin="round"/>' +
+          '<path d="M34 45 C30 52 28 60 29 67" fill="none" stroke="' + c.light + '" stroke-width="6" stroke-linecap="round" opacity="0.9"/>' +
+          '<circle cx="37" cy="35" r="3.2" fill="' + sparkle + '" opacity="0.9"/>' +
+          kawaiiFace(50, 66, 0.96, eyeCol) +
+          '</svg>'
+        );
+      }
+
+      const SHAPES = {
+        circle:   { id: 'circle',   name: '동그라미' },
+        triangle: { id: 'triangle', name: '세모' },
+        square:   { id: 'square',   name: '네모' },
+        long:     { id: 'long',     name: '길쭉이' },
+        star:     { id: 'star',     name: '별모양' },
+        crescent: { id: 'crescent', name: '반달' }
+      };
+
+      function getShapeSvg(shapeId) {
+        const fill = '#FFF6E0';
+        const stroke = '#8D6E63';
+        if (shapeId === 'circle') {
+          return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+            '<circle cx="50" cy="50" r="38" fill="' + fill + '" stroke="' + stroke + '" stroke-width="6"/>' +
+            kawaiiFace(50, 53, 1.05, '#5D4037') + '</svg>';
+        }
+        if (shapeId === 'triangle') {
+          return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M50 13 L89 82 Q91 86 85 86 L15 86 Q9 86 11 82 Z" fill="' + fill + '" stroke="' + stroke + '" stroke-width="6" stroke-linejoin="round"/>' +
+            kawaiiFace(50, 64, 0.94, '#5D4037') + '</svg>';
+        }
+        if (shapeId === 'square') {
+          return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="15" y="15" width="70" height="70" rx="14" fill="' + fill + '" stroke="' + stroke + '" stroke-width="6"/>' +
+            kawaiiFace(50, 53, 1.05, '#5D4037') + '</svg>';
+        }
+        if (shapeId === 'long') {
+          return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="9" y="31" width="82" height="38" rx="19" fill="' + fill + '" stroke="' + stroke + '" stroke-width="6"/>' +
+            kawaiiFace(50, 52, 0.85, '#5D4037') + '</svg>';
+        }
+        if (shapeId === 'star') {
+          return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M50 10 L61 36 L89 39 L68 58 L74 86 L50 72 L26 86 L32 58 L11 39 L39 36 Z" fill="' + fill + '" stroke="' + stroke + '" stroke-width="5.5" stroke-linejoin="round"/>' +
+            kawaiiFace(50, 56, 0.82, '#5D4037') + '</svg>';
+        }
+        return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M68 16 C40 16 18 35 18 58 C18 78 36 90 60 88 C74 87 84 80 88 73 C70 76 52 67 48 51 C44 36 53 23 68 16 Z" fill="' + fill + '" stroke="' + stroke + '" stroke-width="6" stroke-linejoin="round"/>' +
+          kawaiiFace(37, 63, 0.72, '#5D4037') + '</svg>';
+      }
+
+      /* =========================================================================
+         3. 5가지 연관 짝꿍 테마 데이터 (100% 1:1:1 유일 매핑 보장)
+      ========================================================================= */
+      const THEME_MODES = [
+        { id: 'mixed',      label: '🎲 모두 섞기' },
+        { id: 'category',   label: '🧩 종류·짝꿍' },
+        { id: 'animal',     label: '🐾 동물 짝꿍' },
+        { id: 'job',        label: '🚒 직업과 도구' },
+        { id: 'life',       label: '🏠 생활·계절' },
+        { id: 'colorShape', label: '🎨 색깔·모양' }
+      ];
+
+      const PLAYABLE_THEMES = ['category', 'animal', 'job', 'life', 'colorShape'];
+
+      // [테마 1] 🧩 종류·짝꿍 (매 판 서로 다른 4개 종류에서 1개씩 추출)
+      const CATEGORY_GROUPS = [
+        {
+          cat: { emoji: '🐾', name: '동물' },
+          items: [
+            { id: 'cat_rabbit', a: { emoji: '🐰', name: '토끼' },   b: { emoji: '🥕', name: '당근' } },
+            { id: 'cat_dog',    a: { emoji: '🐶', name: '강아지' }, b: { emoji: '🦴', name: '뼈다귀' } },
+            { id: 'cat_monkey', a: { emoji: '🐵', name: '원숭이' }, b: { emoji: '🍌', name: '바나나' } },
+            { id: 'cat_cat',    a: { emoji: '🐱', name: '고양이' }, b: { emoji: '🐟', name: '생선' } },
+            { id: 'cat_bear',   a: { emoji: '🐻', name: '곰' },     b: { emoji: '🍯', name: '꿀' } }
+          ]
+        },
+        {
+          cat: { emoji: '🚗', name: '탈것' },
+          items: [
+            { id: 'cat_fire',   a: { emoji: '🚒', name: '소방차' }, b: { emoji: '🔥', name: '불' } },
+            { id: 'cat_police', a: { emoji: '🚓', name: '경찰차' }, b: { emoji: '🚨', name: '사이렌' } },
+            { id: 'cat_plane',  a: { emoji: '✈️', name: '비행기' }, b: { emoji: '☁️', name: '구름' } },
+            { id: 'cat_train',  a: { emoji: '🚂', name: '기차' },   b: { emoji: '🛤️', name: '기찻길' } }
+          ]
+        },
+        {
+          cat: { emoji: '🌤️', name: '날씨' },
+          items: [
+            { id: 'cat_rain',   a: { emoji: '🌧️', name: '비' },     b: { emoji: '☔', name: '우산' } },
+            { id: 'cat_snow',   a: { emoji: '❄️', name: '눈' },     b: { emoji: '⛄', name: '눈사람' } },
+            { id: 'cat_sun',    a: { emoji: '☀️', name: '해' },     b: { emoji: '🕶️', name: '선글라스' } }
+          ]
+        },
+        {
+          cat: { emoji: '🍓', name: '과일' },
+          items: [
+            { id: 'cat_apple',  a: { emoji: '🍎', name: '사과' },   b: { emoji: '🌳', name: '나무' } },
+            { id: 'cat_waterm', a: { emoji: '🍉', name: '수박' },   b: { emoji: '🏖️', name: '여름' } },
+            { id: 'cat_grape',  a: { emoji: '🍇', name: '포도' },   b: { emoji: '🧃', name: '주스' } }
+          ]
+        },
+        {
+          cat: { emoji: '🛁', name: '목욕' },
+          items: [
+            { id: 'cat_brush',  a: { emoji: '🪥', name: '칫솔' },   b: { emoji: '🦷', name: '이빨' } },
+            { id: 'cat_soap',   a: { emoji: '🧼', name: '비누' },   b: { emoji: '🫧', name: '거품' } }
+          ]
+        },
+        {
+          cat: { emoji: '🏃', name: '운동' },
+          items: [
+            { id: 'cat_soccer', a: { emoji: '⚽', name: '축구공' }, b: { emoji: '🥅', name: '골대' } },
+            { id: 'cat_bask',   a: { emoji: '🏀', name: '농구공' }, b: { emoji: '👟', name: '운동화' } }
+          ]
+        },
+        {
+          cat: { emoji: '🏫', name: '공부' },
+          items: [
+            { id: 'cat_pencil', a: { emoji: '✏️', name: '연필' },   b: { emoji: '📓', name: '공책' } },
+            { id: 'cat_scis',   a: { emoji: '✂️', name: '가위' },   b: { emoji: '📄', name: '종이' } }
+          ]
+        },
+        {
+          cat: { emoji: '🎉', name: '생일' },
+          items: [
+            { id: 'cat_cake',   a: { emoji: '🎂', name: '케이크' }, b: { emoji: '🕯️', name: '촛불' } },
+            { id: 'cat_gift',   a: { emoji: '🎁', name: '선물' },   b: { emoji: '🎈', name: '풍선' } }
+          ]
+        }
+      ];
+
+      // [테마 2] 🐾 동물 짝꿍 (12세트)
+      const ANIMAL_SETS = [
+        { id: 'an_monkey',  a: { emoji: '🐵', name: '원숭이' }, b: { emoji: '🍌', name: '바나나' }, c: { emoji: '🌴', name: '정글' } },
+        { id: 'an_penguin', a: { emoji: '🐧', name: '펭귄' },   b: { emoji: '🐟', name: '물고기' }, c: { emoji: '❄️', name: '얼음' } },
+        { id: 'an_dog',     a: { emoji: '🐶', name: '강아지' }, b: { emoji: '🦴', name: '뼈다귀' }, c: { emoji: '🏠', name: '개집' } },
+        { id: 'an_bee',     a: { emoji: '🐝', name: '꿀벌' },   b: { emoji: '🍯', name: '꿀' },     c: { emoji: '🌸', name: '꽃' } },
+        { id: 'an_panda',   a: { emoji: '🐼', name: '판다' },   b: { emoji: '🎋', name: '대나무' }, c: { emoji: '⛰️', name: '산' } },
+        { id: 'an_frog',    a: { emoji: '🐸', name: '개구리' }, b: { emoji: '🦟', name: '파리' },   c: { emoji: '🪷', name: '연못' } },
+        { id: 'an_cat',     a: { emoji: '🐱', name: '고양이' }, b: { emoji: '🧶', name: '털실' },   c: { emoji: '🛋️', name: '집' } },
+        { id: 'an_eleph',   a: { emoji: '🐘', name: '코끼리' }, b: { emoji: '🥜', name: '땅콩' },   c: { emoji: '🌾', name: '초원' } },
+        { id: 'an_mouse',   a: { emoji: '🐭', name: '생쥐' },   b: { emoji: '🧀', name: '치즈' },   c: { emoji: '🕳️', name: '구멍' } },
+        { id: 'an_koala',   a: { emoji: '🐨', name: '코알라' }, b: { emoji: '🌿', name: '나뭇잎' }, c: { emoji: '🌳', name: '나무' } },
+        { id: 'an_octo',    a: { emoji: '🐙', name: '문어' },   b: { emoji: '🦀', name: '게' },     c: { emoji: '🌊', name: '바다' } },
+        { id: 'an_cow',     a: { emoji: '🐄', name: '젖소' },   b: { emoji: '🥛', name: '우유' },   c: { emoji: '🚜', name: '농장' } }
+      ];
+
+      // [테마 3] 🚒 직업과 도구 (10세트)
+      const JOB_SETS = [
+        { id: 'jb_fire',    a: { emoji: '👨‍🚒', name: '소방관' }, b: { emoji: '🧯', name: '소화기' },   c: { emoji: '🚒', name: '소방차' } },
+        { id: 'jb_police',  a: { emoji: '👮', name: '경찰관' }, b: { emoji: '🚨', name: '경광등' },   c: { emoji: '🚓', name: '경찰차' } },
+        { id: 'jb_doctor',  a: { emoji: '👨‍⚕️', name: '의사' },   b: { emoji: '🩺', name: '청진기' },   c: { emoji: '🚑', name: '구급차' } },
+        { id: 'jb_chef',    a: { emoji: '👨‍🍳', name: '요리사' }, b: { emoji: '🍳', name: '프라이팬' }, c: { emoji: '🍛', name: '요리' } },
+        { id: 'jb_astro',   a: { emoji: '🧑‍🚀', name: '우주인' }, b: { emoji: '🪖', name: '헬멧' },     c: { emoji: '🚀', name: '로켓' } },
+        { id: 'jb_artist',  a: { emoji: '🎨', name: '화가' },   b: { emoji: '🖌️', name: '붓' },       c: { emoji: '🖼️', name: '그림' } },
+        { id: 'jb_farmer',  a: { emoji: '👩‍🌾', name: '농부' },   b: { emoji: '🪓', name: '삽' },       c: { emoji: '🚜', name: '트랙터' } },
+        { id: 'jb_build',   a: { emoji: '👷', name: '건축가' }, b: { emoji: '🔨', name: '망치' },     c: { emoji: '🏠', name: '집' } },
+        { id: 'jb_pilot',   a: { emoji: '👨‍✈️', name: '조종사' }, b: { emoji: '🧭', name: '나침반' },   c: { emoji: '✈️', name: '비행기' } },
+        { id: 'jb_teacher', a: { emoji: '👩‍🏫', name: '선생님' }, b: { emoji: '🖍️', name: '크레용' },   c: { emoji: '🏫', name: '유치원' } }
+      ];
+
+      // [테마 4] 🏠 생활·계절 (10세트)
+      const LIFE_SETS = [
+        { id: 'lf_night',  a: { emoji: '🌙', name: '밤' },     b: { emoji: '⭐', name: '별' },         c: { emoji: '🛏️', name: '잠자기' } },
+        { id: 'lf_summer', a: { emoji: '☀️', name: '여름' },   b: { emoji: '🍦', name: '아이스크림' }, c: { emoji: '🏖️', name: '바다' } },
+        { id: 'lf_winter', a: { emoji: '❄️', name: '겨울' },   b: { emoji: '⛄', name: '눈사람' },     c: { emoji: '🧤', name: '장갑' } },
+        { id: 'lf_bday',   a: { emoji: '🎂', name: '생일' },   b: { emoji: '🎁', name: '선물' },       c: { emoji: '🎈', name: '풍선' } },
+        { id: 'lf_bath',   a: { emoji: '🛁', name: '목욕' },   b: { emoji: '🧼', name: '비누' },       c: { emoji: '🦆', name: '오리' } },
+        { id: 'lf_tooth',  a: { emoji: '🦷', name: '양치' },   b: { emoji: '🪥', name: '칫솔' },       c: { emoji: '💧', name: '물' } },
+        { id: 'lf_meal',   a: { emoji: '🍽️', name: '식사' },   b: { emoji: '🥄', name: '숟가락' },     c: { emoji: '🍚', name: '밥' } },
+        { id: 'lf_music',  a: { emoji: '🎵', name: '음악' },   b: { emoji: '🎹', name: '피아노' },     c: { emoji: '💃', name: '춤' } },
+        { id: 'lf_seed',   a: { emoji: '🌱', name: '씨앗' },   b: { emoji: '🚿', name: '물뿌리개' },   c: { emoji: '🌻', name: '해바라기' } },
+        { id: 'lf_camp',   a: { emoji: '🏕️', name: '캠핑' },   b: { emoji: '⛺', name: '텐트' },       c: { emoji: '🔥', name: '모닥불' } }
+      ];
+
+      // [테마 5] 🎨 색깔·모양 (24종 구체적 사물 -> 물감 방울 SVG -> 중립 크림색 도형 SVG)
+      const COLOR_SHAPE_POOL = [
+        { id: 'cs_apple',    name: '사과',     emoji: '🍎', color: 'red',    shape: 'circle' },
+        { id: 'cs_tomato',   name: '토마토',   emoji: '🍅', color: 'red',    shape: 'circle' },
+        { id: 'cs_banana',   name: '바나나',   emoji: '🍌', color: 'yellow', shape: 'crescent' },
+        { id: 'cs_cheese',   name: '치즈',     emoji: '🧀', color: 'yellow', shape: 'triangle' },
+        { id: 'cs_pizza',    name: '피자',     emoji: '🍕', color: 'yellow', shape: 'triangle' },
+        { id: 'cs_waterm',   name: '수박',     emoji: '🍉', color: 'red',    shape: 'triangle' },
+        { id: 'cs_brocc',    name: '브로콜리', emoji: '🥦', color: 'green',  shape: 'circle' },
+        { id: 'cs_grape',    name: '포도',     emoji: '🍇', color: 'purple', shape: 'triangle' },
+        { id: 'cs_eggplant', name: '가지',     emoji: '🍆', color: 'purple', shape: 'long' },
+        { id: 'cs_carrot',   name: '당근',     emoji: '🥕', color: 'orange', shape: 'long' },
+        { id: 'cs_pumpkin',  name: '호박',     emoji: '🎃', color: 'orange', shape: 'circle' },
+        { id: 'cs_gift',     name: '선물상자', emoji: '🎁', color: 'red',    shape: 'square' },
+        { id: 'cs_choco',    name: '초콜릿',   emoji: '🍫', color: 'brown',  shape: 'square' },
+        { id: 'cs_starfish', name: '불가사리', emoji: '🌟', color: 'yellow', shape: 'star' },
+        { id: 'cs_crois',    name: '크루아상', emoji: '🥐', color: 'orange', shape: 'crescent' },
+        { id: 'cs_onigiri',  name: '주먹밥',   emoji: '🍙', color: 'white',  shape: 'triangle' },
+        { id: 'cs_donut',    name: '도넛',     emoji: '🍩', color: 'pink',   shape: 'circle' },
+        { id: 'cs_cookie',   name: '쿠키',     emoji: '🍪', color: 'brown',  shape: 'circle' },
+        { id: 'cs_snowman',  name: '눈사람',   emoji: '⛄', color: 'white',  shape: 'circle' },
+        { id: 'cs_milk',     name: '우유',     emoji: '🥛', color: 'white',  shape: 'square' },
+        { id: 'cs_whale',    name: '고래',     emoji: '🐳', color: 'blue',   shape: 'long' },
+        { id: 'cs_pig',      name: '돼지',     emoji: '🐷', color: 'pink',   shape: 'circle' },
+        { id: 'cs_tree',     name: '나무',     emoji: '🌲', color: 'green',  shape: 'triangle' },
+        { id: 'cs_book',     name: '파란책',   emoji: '📘', color: 'blue',   shape: 'square' }
+      ];
+
+      const COLOR_SHAPE_FALLBACK = [
+        COLOR_SHAPE_POOL[0],  // 사과 (red, circle)
+        COLOR_SHAPE_POOL[3],  // 치즈 (yellow, triangle)
+        COLOR_SHAPE_POOL[12], // 초콜릿 (brown, square)
+        COLOR_SHAPE_POOL[9]   // 당근 (orange, long)
+      ];
+
+      // 테마별 개인화 질문 생성기
+      const THEME_META = {
+        category: {
+          headers: ['🌟 주인공 골라줘!', '🤝 어울리는 짝꿍은?', '🧩 어떤 종류일까?'],
+          prompts: [
+            function (kid) { return callKid(kid) + '! 마음에 드는 걸 하나 골라줘!'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 짝꿍은?'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 어떤 종류일까?'; }
+          ],
+          shortAsk: ['', '어울리는 짝꿍은?', '어떤 종류일까?']
+        },
+        animal: {
+          headers: ['🐾 동물 친구 골라줘!', '🍽️ 좋아하는 먹이는?', '🏡 어디에 살까·짝꿍은?'],
+          prompts: [
+            function (kid) { return callKid(kid) + '! 동물 친구를 하나 골라줘!'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleIga(item) + ' 좋아하는 먹이는?'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 어디에 살까?'; }
+          ],
+          shortAsk: ['', '좋아하는 먹이는?', '어디에 살까? 짝꿍은?']
+        },
+        job: {
+          headers: ['🧑‍🤝‍🧑 누구를 고를까?', '🧰 무엇을 쓸까?', '✨ 어울리는 짝꿍은?'],
+          prompts: [
+            function (kid) { return callKid(kid) + '! 누구를 골라볼까?'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 무엇을 쓸까?'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 짝꿍은?'; }
+          ],
+          shortAsk: ['', '무엇을 쓸까?', '어울리는 짝꿍은?']
+        },
+        life: {
+          headers: ['🌈 하나를 골라줘!', '🔍 어울리는 짝꿍은?', '✨ 또 다른 짝꿍은?'],
+          prompts: [
+            function (kid) { return callKid(kid) + '! 마음에 드는 걸 하나 골라줘!'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 짝꿍은?'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 또 다른 짝꿍은?'; }
+          ],
+          shortAsk: ['', '어울리는 짝꿍을 찾아줘!', '마지막 짝꿍을 찾아줘!']
+        },
+        colorShape: {
+          headers: ['🍎 사물 골라줘!', '🎨 무슨 색깔일까?', '🔷 무슨 모양일까?'],
+          prompts: [
+            function (kid) { return callKid(kid) + '! 마음에 드는 걸 하나 골라줘!'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 무슨 색깔일까?'; },
+            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 무슨 모양일까?'; }
+          ],
+          shortAsk: ['', '무슨 색깔일까?', '무슨 모양일까?']
+        }
+      };
+
+      /* =========================================================================
+         4. Web Audio API 효과음 + 3종 축하 팡파레 + 개인화 한국어 TTS
+      ========================================================================= */
+      const sound = {
+        ctx: null,
+        soundOn: true,
+        voiceOn: true,
+        melodyIdx: 0,
+
+        unlock: function () {
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume().catch(function () {});
+            }
+          } catch (e) {}
+        },
+
+        note: function (freq, start, dur, type, vol) {
+          if (!this.soundOn || !this.ctx) return;
+          try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type || 'triangle';
+            osc.frequency.setValueAtTime(freq, start);
+
+            const v = vol || 0.22;
+            gain.gain.setValueAtTime(0.001, start);
+            gain.gain.linearRampToValueAtTime(v, start + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(start);
+            osc.stop(start + dur + 0.03);
+          } catch (e) {}
+        },
+
+        playPop: function () {
+          this.unlock();
+          if (!this.soundOn || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          this.note(523.25, now, 0.1, 'sine', 0.2);
+          this.note(698.46, now + 0.05, 0.12, 'triangle', 0.18);
+        },
+
+        playCorrect: function () {
+          this.unlock();
+          if (!this.soundOn || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          this.note(587.33, now, 0.14, 'triangle', 0.24);
+          this.note(880.00, now + 0.08, 0.24, 'triangle', 0.26);
+          this.note(1174.66, now + 0.08, 0.2, 'sine', 0.12);
+        },
+
+        playBoing: function () {
+          this.unlock();
+          if (!this.soundOn || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(240, now);
+            osc.frequency.exponentialRampToValueAtTime(165, now + 0.14);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.22, now + 0.018);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.24);
+          } catch (e) {}
+        },
+
+        playFanfare: function () {
+          this.unlock();
+          if (!this.soundOn || !this.ctx) return;
+          const now = this.ctx.currentTime + 0.04;
+          const N = {
+            G4: 392.00, C5: 523.25, D5: 587.33, E5: 659.25,
+            F5: 698.46, G5: 783.99, A5: 880.00, B5: 987.77,
+            C6: 1046.50, E6: 1318.51
+          };
+
+          const melodies = [
+            // 1. 신나는 마림바 행진곡
+            [
+              { f: N.C5, t: 0.00, d: 0.15 }, { f: N.E5, t: 0.14, d: 0.15 }, { f: N.G5, t: 0.28, d: 0.16 },
+              { f: N.C6, t: 0.45, d: 0.28 }, { f: N.A5, t: 0.75, d: 0.15 }, { f: N.G5, t: 0.91, d: 0.24 },
+              { f: N.E5, t: 1.18, d: 0.15 }, { f: N.F5, t: 1.34, d: 0.15 }, { f: N.G5, t: 1.50, d: 0.18 },
+              { f: N.A5, t: 1.72, d: 0.15 }, { f: N.B5, t: 1.88, d: 0.15 }, { f: N.C6, t: 2.05, d: 0.58 },
+              { f: N.E5, t: 2.05, d: 0.58, v: 0.14 }, { f: N.G5, t: 2.05, d: 0.58, v: 0.14 }
+            ],
+            // 2. 반짝반짝 별 축제
+            [
+              { f: N.C5, t: 0.00, d: 0.15 }, { f: N.C5, t: 0.17, d: 0.15 }, { f: N.G5, t: 0.34, d: 0.16 },
+              { f: N.G5, t: 0.52, d: 0.16 }, { f: N.A5, t: 0.70, d: 0.16 }, { f: N.A5, t: 0.88, d: 0.16 },
+              { f: N.G5, t: 1.06, d: 0.34 }, { f: N.F5, t: 1.44, d: 0.16 }, { f: N.E5, t: 1.62, d: 0.16 },
+              { f: N.D5, t: 1.80, d: 0.16 }, { f: N.G5, t: 1.98, d: 0.18 }, { f: N.C6, t: 2.18, d: 0.58 },
+              { f: N.E6, t: 2.36, d: 0.45, v: 0.15 }
+            ],
+            // 3. 동화 속 팡파레
+            [
+              { f: N.G4, t: 0.00, d: 0.14 }, { f: N.C5, t: 0.14, d: 0.14 }, { f: N.E5, t: 0.28, d: 0.14 },
+              { f: N.G5, t: 0.42, d: 0.28 }, { f: N.E5, t: 0.74, d: 0.15 }, { f: N.G5, t: 0.90, d: 0.30 },
+              { f: N.A5, t: 1.24, d: 0.17 }, { f: N.G5, t: 1.43, d: 0.17 }, { f: N.F5, t: 1.62, d: 0.17 },
+              { f: N.E5, t: 1.81, d: 0.17 }, { f: N.D5, t: 2.00, d: 0.17 }, { f: N.C6, t: 2.20, d: 0.60 },
+              { f: N.G5, t: 2.20, d: 0.60, v: 0.14 }
+            ]
+          ];
+
+          const song = melodies[this.melodyIdx % melodies.length];
+          this.melodyIdx++;
+          for (let i = 0; i < song.length; i++) {
+            const n = song[i];
+            const vol = n.v || 0.24;
+            this.note(n.f, now + n.t, n.d, 'triangle', vol);
+            this.note(n.f * 2, now + n.t, n.d * 0.65, 'sine', vol * 0.22);
+          }
+        },
+
+        speak: function (text) {
+          if (!this.voiceOn) return;
+          try {
+            if (!('speechSynthesis' in window) || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'ko-KR';
+            u.rate = 1.02;
+            u.pitch = 1.15;
+            window.speechSynthesis.speak(u);
+          } catch (e) {}
+        }
+      };
+
+      /* =========================================================================
+         5. 게임 상태 & 5개 테마 1:1:1 유일 매핑 추출
+      ========================================================================= */
+      const state = {
+        round: 1,
+        stars: 0,
+        seats: loadSavedSeats(), // [zone0PlayerId, zone1PlayerId, zone2PlayerId]
+        themeModeIdx: 0,         // 0: 'mixed' (🎲 모두 섞기)
+        activeTheme: 'category',
+        mixedThemeQueue: [],
+        zoneRoles: [0, 1, 2],    // 0: 주인공, 1: 연관 1, 2: 연관 2
+        turnOrder: [0, 1, 2],
+        step: 0,
+        roundSets: [],
+        zoneCards: [[], [], []],
+        targetSet: null,
+        recentIds: [],
+        wrongCount: 0,
+        locked: false,
+        canTapOverlayNext: false,
+        overlayTimer: null,
+        toastTimer: null
+      };
+
+      function getZonePlayer(zoneIdx) {
+        return getPlayerById(state.seats[zoneIdx]);
+      }
+
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const tmp = a[i];
+          a[i] = a[j];
+          a[j] = tmp;
+        }
+        return a;
+      }
+
+      function rememberIds(sets) {
+        for (let i = 0; i < sets.length; i++) {
+          state.recentIds.push(sets[i].id);
+        }
+        if (state.recentIds.length > 12) {
+          state.recentIds = state.recentIds.slice(-12);
+        }
+      }
+
+      function pickThemeForRound() {
+        const mode = THEME_MODES[state.themeModeIdx].id;
+        if (mode !== 'mixed') return mode;
+
+        if (state.mixedThemeQueue.length === 0) {
+          state.mixedThemeQueue = shuffle(PLAYABLE_THEMES);
+          if (state.round === 1) {
+            const idx = state.mixedThemeQueue.indexOf('category');
+            if (idx > 0) {
+              const tmp = state.mixedThemeQueue[0];
+              state.mixedThemeQueue[0] = 'category';
+              state.mixedThemeQueue[idx] = tmp;
+            }
+          }
+        }
+        return state.mixedThemeQueue.shift();
+      }
+
+      function pickFourFromUniquePool(pool) {
+        const recentMap = {};
+        for (let i = 0; i < state.recentIds.length; i++) recentMap[state.recentIds[i]] = true;
+
+        const fresh = pool.filter(function (s) { return !recentMap[s.id]; });
+        let chosen = shuffle(fresh).slice(0, 4);
+        if (chosen.length < 4) {
+          const rest = shuffle(pool.filter(function (s) {
+            return chosen.indexOf(s) === -1;
+          }));
+          chosen = chosen.concat(rest.slice(0, 4 - chosen.length));
+        }
+        return chosen.map(function (s) {
+          return {
+            id: s.id,
+            cols: [
+              { label: s.a.name, emoji: s.a.emoji, svg: null },
+              { label: s.b.name, emoji: s.b.emoji, svg: null },
+              { label: s.c.name, emoji: s.c.emoji, svg: null }
+            ]
+          };
+        });
+      }
+
+      function pickFourCategorySets() {
+        const groups = shuffle(CATEGORY_GROUPS).slice(0, 4);
+        const recentMap = {};
+        for (let i = 0; i < state.recentIds.length; i++) recentMap[state.recentIds[i]] = true;
+
+        return groups.map(function (g) {
+          const freshItems = g.items.filter(function (it) { return !recentMap[it.id]; });
+          const candidates = freshItems.length > 0 ? freshItems : g.items;
+          const picked = candidates[Math.floor(Math.random() * candidates.length)];
+          return {
+            id: picked.id,
+            cols: [
+              { label: picked.a.name, emoji: picked.a.emoji, svg: null },
+              { label: picked.b.name, emoji: picked.b.emoji, svg: null },
+              { label: g.cat.name,    emoji: g.cat.emoji,    svg: null }
+            ]
+          };
+        });
+      }
+
+      function tryGreedyPickColorShape(pool) {
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const shuffled = shuffle(pool);
+          const picked = [];
+          const usedColors = {};
+          const usedShapes = {};
+          for (let i = 0; i < shuffled.length; i++) {
+            const it = shuffled[i];
+            if (!usedColors[it.color] && !usedShapes[it.shape]) {
+              picked.push(it);
+              usedColors[it.color] = true;
+              usedShapes[it.shape] = true;
+              if (picked.length === 4) return picked;
+            }
+          }
+        }
+        return null;
+      }
+
+      function pickFourColorShapeSets() {
+        const recentMap = {};
+        for (let i = 0; i < state.recentIds.length; i++) recentMap[state.recentIds[i]] = true;
+        const fresh = COLOR_SHAPE_POOL.filter(function (it) { return !recentMap[it.id]; });
+
+        let chosen = tryGreedyPickColorShape(fresh);
+        if (!chosen) chosen = tryGreedyPickColorShape(COLOR_SHAPE_POOL);
+        if (!chosen) chosen = COLOR_SHAPE_FALLBACK.slice();
+
+        return chosen.map(function (it) {
+          return {
+            id: it.id,
+            cols: [
+              { label: it.name,               emoji: it.emoji, svg: null },
+              { label: COLORS[it.color].name, emoji: null,     svg: getColorSvg(it.color) },
+              { label: SHAPES[it.shape].name, emoji: null,     svg: getShapeSvg(it.shape) }
+            ]
+          };
+        });
+      }
+
+      function generateRoundSets(themeId) {
+        let sets;
+        if (themeId === 'category') sets = pickFourCategorySets();
+        else if (themeId === 'animal') sets = pickFourFromUniquePool(ANIMAL_SETS);
+        else if (themeId === 'job') sets = pickFourFromUniquePool(JOB_SETS);
+        else if (themeId === 'life') sets = pickFourFromUniquePool(LIFE_SETS);
+        else sets = pickFourColorShapeSets();
+
+        rememberIds(sets);
+        return sets;
+      }
+
+      // 매 판 왼쪽 -> 가운데 -> 오른쪽 공평하게 주인공(Role 0) 순환, 2·3번 역할과 순서는 랜덤/교대
+      function assignRolesAndOrder() {
+        const leaderZone = (state.round - 1) % 3;
+        const others = [0, 1, 2].filter(function (z) { return z !== leaderZone; });
+
+        const flipRole = Math.random() < 0.5;
+        const roles = [0, 0, 0];
+        roles[leaderZone] = 0;
+        roles[others[0]] = flipRole ? 2 : 1;
+        roles[others[1]] = flipRole ? 1 : 2;
+        state.zoneRoles = roles;
+
+        const flipTurn = Math.random() < 0.5;
+        state.turnOrder = flipTurn
+          ? [leaderZone, others[1], others[0]]
+          : [leaderZone, others[0], others[1]];
+      }
+
+      /* =========================================================================
+         6. 꽃가루 폭죽 캔버스
+      ========================================================================= */
+      const confetti = {
+        canvas: null,
+        ctx: null,
+        particles: [],
+        running: false,
+        rafId: null,
+
+        init: function () {
+          this.canvas = document.getElementById('confettiCanvas');
+          if (this.canvas) {
+            this.ctx = this.canvas.getContext('2d');
+            this.resize();
+          }
+        },
+
+        resize: function () {
+          if (!this.canvas) return;
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+        },
+
+        start: function () {
+          if (!this.ctx) return;
+          this.resize();
+          this.particles = [];
+          const colors = ['#FF4D4D', '#FFD93D', '#4CC964', '#3B9EFF', '#9B6BFF', '#FF7EB6', '#FF9429'];
+          const kinds = ['rect', 'circle', 'star'];
+
+          for (let i = 0; i < 120; i++) {
+            const isBurst = i < 40;
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 4 + Math.random() * 9;
+            this.particles.push({
+              x: isBurst ? this.canvas.width * 0.5 : Math.random() * this.canvas.width,
+              y: isBurst ? this.canvas.height * 0.45 : -20 - Math.random() * this.canvas.height * 0.5,
+              vx: isBurst ? Math.cos(angle) * speed : (Math.random() - 0.5) * 4.5,
+              vy: isBurst ? Math.sin(angle) * speed - 3.5 : 3 + Math.random() * 5,
+              gravity: isBurst ? 0.15 : 0.02,
+              size: 8 + Math.random() * 10,
+              color: colors[Math.floor(Math.random() * colors.length)],
+              kind: isBurst ? 'star' : kinds[Math.floor(Math.random() * kinds.length)],
+              rot: Math.random() * Math.PI * 2,
+              vrot: (Math.random() - 0.5) * 0.2
+            });
+          }
+
+          this.running = true;
+          this.loop();
+        },
+
+        stop: function () {
+          this.running = false;
+          if (this.rafId) cancelAnimationFrame(this.rafId);
+          this.rafId = null;
+          if (this.ctx && this.canvas) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          }
+        },
+
+        drawStar: function (ctx, r) {
+          ctx.beginPath();
+          for (let i = 0; i < 5; i++) {
+            const a1 = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+            const a2 = ((i * 4 + 2) * Math.PI) / 5 - Math.PI / 2;
+            ctx.lineTo(Math.cos(a1) * r, Math.sin(a1) * r);
+            ctx.lineTo(Math.cos(a2) * r * 0.45, Math.sin(a2) * r * 0.45);
+          }
+          ctx.closePath();
+          ctx.fill();
+        },
+
+        loop: function () {
+          if (!this.running || !this.ctx || !this.canvas) return;
+          const ctx = this.ctx;
+          const W = this.canvas.width;
+          const H = this.canvas.height;
+          ctx.clearRect(0, 0, W, H);
+
+          for (let i = 0; i < this.particles.length; i++) {
+            const p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.rot += p.vrot;
+
+            if (p.y > H + 30) {
+              p.y = -20;
+              p.x = Math.random() * W;
+              p.vy = 3 + Math.random() * 4.5;
+              p.vx = (Math.random() - 0.5) * 4;
+              p.gravity = 0.02;
+            }
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            if (p.kind === 'rect') {
+              ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.65);
+            } else if (p.kind === 'circle') {
+              ctx.beginPath();
+              ctx.arc(0, 0, p.size / 2.2, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              this.drawStar(ctx, p.size * 0.68);
+            }
+            ctx.restore();
+          }
+
+          const self = this;
+          this.rafId = requestAnimationFrame(function () { self.loop(); });
+        }
+      };
+
+      /* =========================================================================
+         7. 100% 겹침 방지 안전 영역 지터링(Jittered 4-Quadrant) 자유 배치
+            - 상단 HUD+타겟 배너(~155px)와 하단 아이 얼굴 프로필(~130px) 사이 안전 영역 사용
+      ========================================================================= */
+      function computeJitteredLayout(zoneIdx) {
+        const playEl = document.getElementById('play' + zoneIdx);
+        const topEl = document.getElementById('topBanner' + zoneIdx);
+        const dockEl = document.getElementById('playerDock' + zoneIdx);
+
+        const W = (playEl && playEl.clientWidth) ? playEl.clientWidth : (window.innerWidth / 3);
+        const H = (playEl && playEl.clientHeight) ? playEl.clientHeight : window.innerHeight;
+
+        const topRect = topEl ? topEl.getBoundingClientRect() : null;
+        const dockRect = dockEl ? dockEl.getBoundingClientRect() : null;
+
+        const safeTop = Math.max(topRect ? (topRect.bottom + 18) : 165, 145, H * 0.21);
+        const safeBottom = Math.min(dockRect ? (dockRect.top - 16) : (H - 135), H - 125, H * 0.83);
+        const safeLeft = Math.max(14, W * 0.05);
+        const safeRight = W - safeLeft;
+
+        const usableW = Math.max(170, safeRight - safeLeft);
+        const usableH = Math.max(190, safeBottom - safeTop);
+
+        const cellW = usableW / 2;
+        const cellH = usableH / 2;
+
+        const maxFit = Math.min(cellW * 0.82, cellH * 0.82);
+        const bubbleSize = Math.max(82, Math.min(156, maxFit));
+        const half = bubbleSize / 2;
+        const pad = 8;
+
+        const subZones = shuffle([
+          { col: 0, row: 0 },
+          { col: 1, row: 0 },
+          { col: 0, row: 1 },
+          { col: 1, row: 1 }
+        ]);
+
+        const points = [];
+        for (let i = 0; i < 4; i++) {
+          const sz = subZones[i];
+          const cLeft = safeLeft + sz.col * cellW;
+          const cTop = safeTop + sz.row * cellH;
+
+          const minX = cLeft + half + pad;
+          const maxX = cLeft + cellW - half - pad;
+          const minY = cTop + half + pad;
+          const maxY = cTop + cellH - half - pad;
+
+          const x = (minX < maxX) ? (minX + Math.random() * (maxX - minX)) : (cLeft + cellW / 2);
+          const y = (minY < maxY) ? (minY + Math.random() * (maxY - minY)) : (cTop + cellH / 2);
+
+          points.push({
+            xPct: (x / W) * 100,
+            yPct: (y / H) * 100
+          });
+        }
+
+        return { bubbleSize: bubbleSize, points: points };
+      }
+
+      /* =========================================================================
+         8. 라운드 시작 및 전체 UI 렌더링
+      ========================================================================= */
+      function startNewRound(announce) {
+        state.step = 0;
+        state.targetSet = null;
+        state.wrongCount = 0;
+        state.locked = false;
+
+        state.activeTheme = pickThemeForRound();
+        assignRolesAndOrder();
+        state.roundSets = generateRoundSets(state.activeTheme);
+
+        // 상단/하단 크기를 먼저 확정해 안전 영역 계산 정확도 보장
+        renderTopAndBottomMeta();
+
+        for (let z = 0; z < 3; z++) {
+          const roleIdx = state.zoneRoles[z];
+          const cards = shuffle(state.roundSets.map(function (s) {
+            const col = s.cols[roleIdx];
+            return {
+              setId: s.id,
+              roleIdx: roleIdx,
+              label: col.label,
+              emoji: col.emoji,
+              svg: col.svg
+            };
+          }));
+          const layout = computeJitteredLayout(z);
+
+          state.zoneCards[z] = cards.map(function (c, idx) {
+            return {
+              setId: c.setId,
+              roleIdx: c.roleIdx,
+              label: c.label,
+              emoji: c.emoji,
+              svg: c.svg,
+              xPct: layout.points[idx].xPct,
+              yPct: layout.points[idx].yPct,
+              bubbleSize: layout.bubbleSize,
+              tilt: (Math.random() * 14 - 7).toFixed(1),
+              bobDur: (2.8 + Math.random() * 1.2).toFixed(2),
+              bobDelay: (-Math.random() * 2.5).toFixed(2)
+            };
+          });
+        }
+
+        renderAll();
+
+        if (announce) {
+          const leaderKid = getZonePlayer(state.turnOrder[0]);
+          sound.speak(callKid(leaderKid.name) + '! 마음에 드는 걸 하나 골라줘!');
+        }
+      }
+
+      function renderHud() {
+        const rEl = document.getElementById('roundNum');
+        if (rEl) rEl.textContent = String(state.round);
+        const sEl = document.getElementById('starCountNum');
+        if (sEl) sEl.textContent = String(state.stars);
+
+        const tBtn = document.getElementById('themeBtn');
+        if (tBtn) {
+          const modeObj = THEME_MODES[state.themeModeIdx];
+          if (modeObj.id === 'mixed') {
+            const curObj = THEME_MODES.filter(function (m) { return m.id === state.activeTheme; })[0];
+            tBtn.textContent = '🎲 섞기 · ' + (curObj ? curObj.label : '');
+          } else {
+            tBtn.textContent = modeObj.label;
+          }
+        }
+      }
+
+      function renderTopBanner(z, roleIdx) {
+        const el = document.getElementById('topBanner' + z);
+        if (!el) return;
+        const meta = THEME_META[state.activeTheme];
+        const kid = getZonePlayer(z);
+
+        // 1번째 아이가 주인공을 고른 뒤에는 나머지 두 칸 상단에 대형 타겟 팝업 배너 표시
+        if (state.targetSet && roleIdx !== 0) {
+          const starter = state.targetSet.cols[0];
+          const promptText = meta.prompts[roleIdx](kid.name, starter.label);
+          const prevId = el.getAttribute('data-target-id');
+          el.classList.add('is-target-popup');
+          el.innerHTML =
+            '<div class="target-emoji">' + starter.emoji + '</div>' +
+            '<div class="target-info">' +
+              '<div class="target-name">' + starter.label + '</div>' +
+              '<div class="target-prompt">' + promptText + '</div>' +
+            '</div>';
+
+          if (prevId !== state.targetSet.id) {
+            el.setAttribute('data-target-id', state.targetSet.id);
+            el.style.animation = 'none';
+            void el.offsetWidth;
+            el.style.animation = '';
+          }
+        } else {
+          el.classList.remove('is-target-popup');
+          el.setAttribute('data-target-id', '');
+          if (roleIdx === 0) {
+            el.innerHTML = '<div class="role-chip-title">🌟 ' + callKid(kid.name) + '! 하나 골라줘!</div>';
+          } else {
+            el.innerHTML = '<div class="role-chip-title">' + meta.headers[roleIdx] + '</div>';
+          }
+        }
+      }
+
+      function renderPlayerDock(z, isActive, isDone) {
+        const dockEl = document.getElementById('playerDock' + z);
+        if (!dockEl) return;
+        const kid = getZonePlayer(z);
+
+        dockEl.style.setProperty('--player-color', kid.badgeColor);
+        dockEl.style.setProperty('--player-glow', kid.glow);
+
+        let statusText = '잠깐 기다려요';
+        if (isDone) statusText = '잘했어요! ⭐';
+        else if (isActive) statusText = '⭐ 내 차례!';
+
+        dockEl.innerHTML =
+          '<div class="player-avatar-wrap">' +
+            buildAvatarHtml(kid, true) +
+          '</div>' +
+          '<div class="player-meta">' +
+            '<div class="player-name-row">' +
+              '<span class="player-name-pill">' + kid.name + '</span>' +
+            '</div>' +
+            '<div class="player-turn-badge">' + statusText + '</div>' +
+          '</div>';
+      }
+
+      function renderTopAndBottomMeta() {
+        const activeZone = state.step < 3 ? state.turnOrder[state.step] : -1;
+        for (let z = 0; z < 3; z++) {
+          const roleIdx = state.zoneRoles[z];
+          const turnIdx = state.turnOrder.indexOf(z);
+          const isActive = (z === activeZone);
+          const isDone = (turnIdx < state.step);
+          renderTopBanner(z, roleIdx);
+          renderPlayerDock(z, isActive, isDone);
+        }
+      }
+
+      function renderZones() {
+        const activeZone = state.step < 3 ? state.turnOrder[state.step] : -1;
+
+        for (let z = 0; z < 3; z++) {
+          const zoneEl = document.getElementById('zone' + z);
+          const playEl = document.getElementById('play' + z);
+          if (!zoneEl || !playEl) continue;
+
+          const roleIdx = state.zoneRoles[z];
+          const turnIdx = state.turnOrder.indexOf(z);
+          const isActive = (z === activeZone);
+          const isDone = (turnIdx < state.step);
+
+          zoneEl.classList.remove('is-active', 'is-waiting', 'is-done');
+          if (isActive) zoneEl.classList.add('is-active');
+          else if (isDone) zoneEl.classList.add('is-done');
+          else zoneEl.classList.add('is-waiting');
+
+          renderTopBanner(z, roleIdx);
+          renderPlayerDock(z, isActive, isDone);
+
+          playEl.innerHTML = '';
+          const cards = state.zoneCards[z];
+
+          for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'bubble-btn';
+            btn.setAttribute('data-set-id', card.setId);
+
+            const sz = card.bubbleSize;
+            btn.style.width = sz + 'px';
+            btn.style.height = sz + 'px';
+            btn.style.left = card.xPct + '%';
+            btn.style.top = card.yPct + '%';
+            btn.style.setProperty('--tilt', card.tilt + 'deg');
+            btn.style.setProperty('--bob-dur', card.bobDur + 's');
+            btn.style.setProperty('--bob-delay', card.bobDelay + 's');
+            btn.style.setProperty('--emoji-size', Math.max(44, Math.round(sz * 0.49)) + 'px');
+            btn.style.setProperty('--label-size', Math.max(14, Math.round(sz * 0.148)) + 'px');
+
+            if (isDone && state.targetSet && card.setId === state.targetSet.id) {
+              btn.classList.add('is-picked');
+            }
+            if (isActive && state.step > 0 && state.wrongCount >= 2 && state.targetSet && card.setId === state.targetSet.id) {
+              btn.classList.add('is-hint');
+            }
+
+            if (card.emoji) {
+              btn.innerHTML =
+                '<div class="bubble-emoji">' + card.emoji + '</div>' +
+                '<div class="bubble-label">' + card.label + '</div>';
+            } else {
+              btn.innerHTML =
+                '<div class="bubble-svg">' + card.svg + '</div>' +
+                '<div class="bubble-label">' + card.label + '</div>';
+            }
+
+            (function (zoneIndex, cardObj, buttonEl) {
+              buttonEl.addEventListener('click', function () {
+                handleBubbleTap(zoneIndex, cardObj, buttonEl);
+              });
+            })(z, card, btn);
+
+            playEl.appendChild(btn);
+          }
+        }
+      }
+
+      function renderAll() {
+        renderHud();
+        renderZones();
+      }
+
+      /* =========================================================================
+         9. 자리 배치 모달 (서율·유민·하린 중복 없는 자동 스왑)
+      ========================================================================= */
+      function renderSeatModal() {
+        const grid = document.getElementById('seatGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        for (let z = 0; z < 3; z++) {
+          const curKid = getZonePlayer(z);
+          const card = document.createElement('div');
+          card.className = 'seat-slot-card';
+          card.setAttribute('data-slot', String(z));
+
+          let btnsHtml = '';
+          for (let p = 0; p < PLAYERS.length; p++) {
+            const pl = PLAYERS[p];
+            const isSel = (pl.id === curKid.id);
+            const styleAttr = isSel ? ' style="background:' + pl.badgeColor + ';"' : '';
+            btnsHtml +=
+              '<button type="button" class="seat-pick-btn' + (isSel ? ' is-selected' : '') + '"' +
+              ' data-zone="' + z + '" data-pid="' + pl.id + '"' + styleAttr + '>' +
+              pl.name + '</button>';
+          }
+
+          card.innerHTML =
+            '<div class="seat-slot-label">' + SEAT_LABELS[z] + '</div>' +
+            '<div class="seat-preview-avatar" style="background:' + curKid.badgeColor + ';">' +
+              buildAvatarHtml(curKid, true) +
+            '</div>' +
+            '<div class="seat-preview-name">' + curKid.name + '</div>' +
+            '<div class="seat-pick-row">' + btnsHtml + '</div>';
+
+          grid.appendChild(card);
+        }
+
+        const pickBtns = grid.querySelectorAll('.seat-pick-btn');
+        for (let i = 0; i < pickBtns.length; i++) {
+          pickBtns[i].addEventListener('click', function () {
+            const targetZone = parseInt(this.getAttribute('data-zone'), 10);
+            const targetPid = this.getAttribute('data-pid');
+            const prevZone = state.seats.indexOf(targetPid);
+            if (prevZone !== -1 && prevZone !== targetZone) {
+              const displacedPid = state.seats[targetZone];
+              state.seats[targetZone] = targetPid;
+              state.seats[prevZone] = displacedPid;
+              saveSeats(state.seats);
+              sound.playPop();
+              renderSeatModal();
+              renderAll();
+            }
+          });
+        }
+      }
+
+      function openSeatModal() {
+        sound.playPop();
+        renderSeatModal();
+        document.getElementById('seatModalOverlay').classList.add('show');
+      }
+
+      function closeSeatModal() {
+        sound.playPop();
+        document.getElementById('seatModalOverlay').classList.remove('show');
+        renderAll();
+      }
+
+      /* =========================================================================
+         10. 터치 인터랙션, 부드러운 오답 힌트 & 축하 오버레이
+      ========================================================================= */
+      function showFeedbackToast(msg) {
+        const el = document.getElementById('feedbackToast');
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add('show');
+        if (state.toastTimer) clearTimeout(state.toastTimer);
+        state.toastTimer = setTimeout(function () {
+          el.classList.remove('show');
+        }, 1600);
+      }
+
+      function handleBubbleTap(zoneIdx, card, btnEl) {
+        sound.unlock();
+        if (state.locked) return;
+        if (zoneIdx !== state.turnOrder[state.step]) return;
+
+        const meta = THEME_META[state.activeTheme];
+        const curKid = getZonePlayer(zoneIdx);
+
+        // 1단계: 주인공 자유 선택
+        if (state.step === 0) {
+          sound.playCorrect();
+          for (let i = 0; i < state.roundSets.length; i++) {
+            if (state.roundSets[i].id === card.setId) {
+              state.targetSet = state.roundSets[i];
+              break;
+            }
+          }
+          state.step = 1;
+          state.wrongCount = 0;
+          renderAll();
+
+          const nextZone = state.turnOrder[1];
+          const nextRole = state.zoneRoles[nextZone];
+          const nextKid = getZonePlayer(nextZone);
+          sound.speak(card.label + '! ' + meta.prompts[nextRole](nextKid.name, card.label));
+          return;
+        }
+
+        // 2~3단계: 연관 짝꿍 매칭
+        if (state.targetSet && card.setId === state.targetSet.id) {
+          state.wrongCount = 0;
+          if (state.step === 1) {
+            sound.playCorrect();
+            state.step = 2;
+            renderAll();
+
+            const lastZone = state.turnOrder[2];
+            const lastRole = state.zoneRoles[lastZone];
+            const lastKid = getZonePlayer(lastZone);
+            const starterLabel = state.targetSet.cols[0].label;
+            sound.speak('딩동! ' + card.label + '! ' + meta.prompts[lastRole](lastKid.name, starterLabel));
+          } else {
+            state.step = 3;
+            state.locked = true;
+            renderAll();
+            setTimeout(showCelebration, 320);
+          }
+        } else {
+          // 부드러운 오답 처리 + 아이 이름으로 격려
+          sound.playBoing();
+          state.wrongCount++;
+
+          btnEl.classList.remove('is-wrong');
+          void btnEl.offsetWidth;
+          btnEl.classList.add('is-wrong');
+
+          if (state.wrongCount >= 2 && state.targetSet) {
+            const hintMsg = callKid(curKid.name) + ', 반짝이는 짝꿍을 눌러볼까? ✨';
+            showFeedbackToast(hintMsg);
+            sound.speak(callKid(curKid.name) + ', 반짝이는 짝꿍을 눌러볼까?');
+            const playEl = document.getElementById('play' + zoneIdx);
+            if (playEl) {
+              const correctBtn = playEl.querySelector('[data-set-id="' + state.targetSet.id + '"]');
+              if (correctBtn) correctBtn.classList.add('is-hint');
+            }
+          } else {
+            const retryMsg = '음, ' + callKid(curKid.name) + ' 다른 걸 눌러볼까? 😊';
+            showFeedbackToast(retryMsg);
+            sound.speak('음, ' + callKid(curKid.name) + ' 다른 걸 눌러볼까?');
+          }
+        }
+      }
+
+      function showCelebration() {
+        const tSet = state.targetSet;
+        if (!tSet) return;
+
+        state.stars++;
+        renderHud();
+
+        const starsEl = document.getElementById('hudStars');
+        if (starsEl) {
+          starsEl.classList.remove('bump');
+          void starsEl.offsetWidth;
+          starsEl.classList.add('bump');
+        }
+
+        // 3개의 완성 짝꿍 표시
+        for (let i = 0; i < 3; i++) {
+          const col = tSet.cols[i];
+          const visEl = document.getElementById('celVisual' + i);
+          const lblEl = document.getElementById('celLabel' + i);
+          if (visEl) {
+            if (col.emoji) visEl.textContent = col.emoji;
+            else visEl.innerHTML = col.svg;
+          }
+          if (lblEl) lblEl.textContent = col.label;
+        }
+
+        // 서율·유민·하린 미니 응원 프로필 (현재 자리 순서대로)
+        const cheerRow = document.getElementById('celCheerRow');
+        if (cheerRow) {
+          let cheerHtml = '';
+          for (let z = 0; z < 3; z++) {
+            const kid = getZonePlayer(z);
+            cheerHtml +=
+              '<div class="cel-cheer-kid">' +
+                '<div class="cel-cheer-avatar" style="background:' + kid.badgeColor + ';">' +
+                  buildAvatarHtml(kid, false) +
+                '</div>' +
+                '<div class="cel-cheer-name" style="background:' + kid.badgeColor + ';">' + kid.name + '</div>' +
+              '</div>';
+          }
+          cheerRow.innerHTML = cheerHtml;
+        }
+
+        const kidNames = getZonePlayer(0).name + ', ' + getZonePlayer(1).name + ', ' + getZonePlayer(2).name;
+        const trioWords = tSet.cols[0].label + ', ' + tSet.cols[1].label + ', ' + tSet.cols[2].label;
+
+        document.getElementById('celTitle').textContent = '우와! ' + trioWords + '! 🎉';
+        document.getElementById('celSub').textContent = kidNames + '! 우리 셋이 최고야! ⭐';
+
+        state.canTapOverlayNext = false;
+        const hintEl = document.getElementById('celTapHint');
+        if (hintEl) hintEl.textContent = '신나게 축하해요! 🎉';
+
+        document.getElementById('celebrationOverlay').classList.add('show');
+        confetti.start();
+        sound.playFanfare();
+
+        setTimeout(function () {
+          sound.speak('우와! ' + kidNames + '! ' + trioWords + '! 우리 셋이 최고야!');
+        }, 550);
+
+        if (state.overlayTimer) clearTimeout(state.overlayTimer);
+        state.overlayTimer = setTimeout(function () {
+          state.canTapOverlayNext = true;
+          if (hintEl) hintEl.textContent = '버튼이나 화면 아무 곳이나 누르면 다음 판으로 가요! ▶';
+        }, 2000);
+      }
+
+      function goToNextRound() {
+        sound.playPop();
+        if (state.overlayTimer) clearTimeout(state.overlayTimer);
+        state.canTapOverlayNext = false;
+        document.getElementById('celebrationOverlay').classList.remove('show');
+        confetti.stop();
+        state.round++;
+        startNewRound(true);
+      }
+
+      /* =========================================================================
+         11. 초기화 & 이벤트 연결
+      ========================================================================= */
+      function toggleFullscreen() {
+        sound.playPop();
+        try {
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            const el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+          } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+          }
+        } catch (e) {}
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        confetti.init();
+
+        // 테마 전환 버튼
+        document.getElementById('themeBtn').addEventListener('click', function () {
+          sound.playPop();
+          state.themeModeIdx = (state.themeModeIdx + 1) % THEME_MODES.length;
+          state.mixedThemeQueue = [];
+          startNewRound(true);
+        });
+
+        // 자리 배치 모달 열기/닫기
+        document.getElementById('seatBtn').addEventListener('click', openSeatModal);
+        document.getElementById('seatDoneBtn').addEventListener('click', closeSeatModal);
+        document.getElementById('seatModalOverlay').addEventListener('click', function (e) {
+          if (e.target === this) closeSeatModal();
+        });
+
+        // 효과음 토글
+        const soundBtn = document.getElementById('soundBtn');
+        soundBtn.addEventListener('click', function () {
+          sound.soundOn = !sound.soundOn;
+          soundBtn.textContent = sound.soundOn ? '🔊' : '🔇';
+          soundBtn.classList.toggle('is-off', !sound.soundOn);
+          if (sound.soundOn) sound.playPop();
+        });
+
+        // 목소리 안내 토글
+        const voiceBtn = document.getElementById('voiceBtn');
+        voiceBtn.addEventListener('click', function () {
+          sound.voiceOn = !sound.voiceOn;
+          voiceBtn.textContent = sound.voiceOn ? '🗣️' : '🤫';
+          voiceBtn.classList.toggle('is-off', !sound.voiceOn);
+          try {
+            if (!sound.voiceOn && 'speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+            }
+          } catch (e) {}
+        });
+
+        // 전체화면 토글
+        document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+        // 다음 판 버튼 & 2초 뒤 오버레이 터치
+        document.getElementById('nextRoundBtn').addEventListener('click', function (e) {
+          e.stopPropagation();
+          goToNextRound();
+        });
+
+        document.getElementById('celebrationOverlay').addEventListener('click', function () {
+          if (state.canTapOverlayNext) {
+            goToNextRound();
+          }
+        });
+
+        // 화면 회전/리사이즈 시 안전 영역 재계산
+        let resizeTimer = null;
+        window.addEventListener('resize', function () {
+          confetti.resize();
+          if (resizeTimer) clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(function () {
+            for (let z = 0; z < 3; z++) {
+              if (!state.zoneCards[z] || state.zoneCards[z].length !== 4) continue;
+              const layout = computeJitteredLayout(z);
+              for (let i = 0; i < 4; i++) {
+                state.zoneCards[z][i].xPct = layout.points[i].xPct;
+                state.zoneCards[z][i].yPct = layout.points[i].yPct;
+                state.zoneCards[z][i].bubbleSize = layout.bubbleSize;
+              }
+            }
+            renderZones();
+          }, 150);
+        });
+
+        // 열자마자 바로 1판 시작!
+        startNewRound(false);
+      });
+    })();
+  </script>
+</body>
+</html>

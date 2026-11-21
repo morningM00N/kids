@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반짝반짝 틀린 그림 찾기</title>
+<style>
+:root{
+  --bg:linear-gradient(135deg,#ffe8f3 0%,#fff7db 50%,#e4f5ff 100%);
+  --card:rgba(255,255,255,.94);
+  --text:#4a4458; --sub:#7a728a;
+}
+*{box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden}
+body{
+  padding:16px;height:100dvh;background:var(--bg);
+  font-family:'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;color:var(--text);
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+body.fullscreen-mode{padding:8px;gap:8px}
+
+/* 상단 바 */
+.top-bar,.bottom-timer-bar{
+  width:100%;max-width:none;background:var(--card);backdrop-filter:blur(8px);
+  border:3px solid #fff;box-shadow:0 10px 25px rgba(255,145,190,.16);flex:none;
+}
+.top-bar{padding:10px 22px;border-radius:32px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.stage-badge{background:linear-gradient(135deg,#ff85b3,#ff5c93);color:#fff;font-size:1.2rem;font-weight:900;padding:8px 18px;border-radius:999px;box-shadow:0 4px 10px rgba(255,92,147,.3);white-space:nowrap}
+.stars-container{display:flex;gap:12px;align-items:center;background:#fff9eb;padding:6px 20px;border-radius:999px;border:2px solid #ffe8a3}
+.star{width:40px;height:40px;fill:#e8ecf2;stroke:#d8dee9;stroke-width:1.5;transition:fill .3s,stroke .3s}
+.star.earned{fill:#ffd13b;stroke:#f59e0b;animation:starPop .7s cubic-bezier(.34,1.56,.64,1) forwards;filter:drop-shadow(0 0 12px rgba(255,209,59,.9))}
+@keyframes starPop{0%{transform:scale(.3) rotate(-40deg)}50%{transform:scale(1.45) rotate(18deg)}75%{transform:scale(.9) rotate(-6deg)}100%{transform:scale(1) rotate(0)}}
+.action-buttons{display:flex;gap:10px}
+.btn{border:none;border-radius:20px;padding:10px 16px;font-size:1rem;font-weight:800;cursor:pointer;transition:transform .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:active{transform:translateY(3px) scale(.96)}
+.btn-hint{background:#fff3c4;color:#b4690e;border:2px solid #ffe07d;box-shadow:0 5px 0 #ffd24c}
+.btn-bgm{background:#eef6ff;color:#4b7bec;border:2px solid #cbe2ff;box-shadow:0 5px 0 #b3d4ff}
+.btn-fullscreen{background:#f0f7f0;color:#2f9e44;border:2px solid #b7e4c7;box-shadow:0 5px 0 #94d3a8}
+body.fullscreen-mode .top-bar{padding:6px 14px;border-radius:20px}
+body.fullscreen-mode .stage-badge{font-size:1rem;padding:5px 12px}
+body.fullscreen-mode .star{width:32px;height:32px}
+body.fullscreen-mode .btn{padding:7px 12px;font-size:.9rem;box-shadow:none}
+
+/* 게임 영역 */
+.game-arena{
+  width:100%;flex:1;min-height:0;
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);gap:8px;
+}
+.board-wrapper{
+  min-width:0;min-height:0;padding:10px;border-radius:28px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 12px 28px rgba(130,115,160,.1);
+}
+.left-theme{background:#fff0f6;border:4px solid #ffc2dc;align-items:flex-end}
+.right-theme{background:#f5f0ff;border:4px solid #d8c7ff;align-items:flex-start}
+.board-label{flex:none;font-size:1rem;font-weight:800;margin-bottom:8px;padding:4px 16px;border-radius:999px;background:#fff;line-height:1.3}
+.left-theme .board-label{color:#ff6699}
+.right-theme .board-label{color:#8c68cd}
+body.fullscreen-mode .board-wrapper{padding:6px;border-radius:20px}
+body.fullscreen-mode .board-label{font-size:.9rem;margin-bottom:4px;padding:2px 12px}
+
+/* 캔버스: 크기는 JS가 정확히 맞춤 */
+.canvas-stage{position:relative;flex:none;border-radius:18px;overflow:hidden;background:#fff;border:4px solid #fff;cursor:pointer;line-height:0}
+.canvas-stage canvas{display:block}
+.overlay-layer{position:absolute;inset:0;pointer-events:none}
+.found-ring{position:absolute;border:6px solid #ff5c93;border-radius:50%;box-shadow:0 0 14px rgba(255,92,147,.7),inset 0 0 10px rgba(255,255,255,.6);animation:ringPop .5s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes ringPop{0%{transform:scale(1.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.hint-ring{position:absolute;border:5px dashed #ffb703;border-radius:50%;background:rgba(255,224,102,.3);animation:hintPulse .65s ease-in-out infinite alternate}
+@keyframes hintPulse{from{transform:scale(.88);opacity:.55}to{transform:scale(1.08);opacity:1}}
+.wrong-mark{position:absolute;transform:translate(-50%,-50%);font-size:2.2rem;line-height:1;animation:fadeOutUp .6s ease forwards;pointer-events:none}
+@keyframes fadeOutUp{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70%) scale(1)}}
+.canvas-stage.shake{animation:shakeBoard .35s ease}
+@keyframes shakeBoard{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+
+/* 하단 타이머 */
+.bottom-timer-bar{padding:10px 22px;border-radius:32px;display:flex;align-items:center;gap:14px}
+body.fullscreen-mode .bottom-timer-bar{padding:6px 14px;border-radius:20px}
+.timer-icon{font-size:1.4rem}
+.progress-track{flex:1;height:24px;background:#f3effa;border-radius:999px;overflow:hidden;padding:4px;border:2px solid #e6def5}
+body.fullscreen-mode .progress-track{height:20px}
+.progress-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ae582,#4cc9f0);border-radius:999px;transition:width .1s linear}
+.progress-fill.warning{background:linear-gradient(90deg,#ffd166,#ff9f1c)}
+.progress-fill.danger{background:linear-gradient(90deg,#ff8fa3,#ff4d6d);animation:barPulse .5s infinite alternate}
+@keyframes barPulse{from{opacity:.75}to{opacity:1}}
+.timer-text{font-size:1.2rem;font-weight:800;min-width:60px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* 모달 */
+.overlay{position:fixed;inset:0;background:rgba(255,240,248,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.overlay.hidden{display:none}
+.modal-card{background:linear-gradient(180deg,#fff 0%,#fff7fb 100%);padding:36px 40px;border-radius:36px;border:4px solid #ffd6e7;text-align:center;max-width:460px;width:100%;box-shadow:0 20px 45px rgba(255,133,179,.25);animation:modalBounce .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modalBounce{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.modal-emoji{font-size:4.5rem;margin-bottom:10px;display:block}
+.modal-title{font-size:1.8rem;font-weight:800;color:#ff5c93;margin:0 0 12px}
+.modal-desc{font-size:1.1rem;color:var(--sub);margin:0 0 24px;line-height:1.6}
+.btn-start{background:linear-gradient(135deg,#ff85b3,#ff5c93);color:#fff;font-size:1.35rem;font-weight:800;padding:16px 40px;border:none;border-radius:999px;cursor:pointer;box-shadow:0 8px 0 #e04379,0 14px 24px rgba(255,92,147,.35);transition:transform .15s}
+.btn-start:active{transform:translateY(4px);box-shadow:0 4px 0 #e04379}
+.btn-start:disabled{opacity:.6;cursor:wait}
+
+/* 오답 패널티 / 막판 긴장감 */
+.bottom-timer-bar{position:relative}
+.timer-text{transition:color .3s}
+.timer-text.urgent{color:#ff3355;animation:timerBeat .5s infinite alternate}
+@keyframes timerBeat{from{transform:scale(1)}to{transform:scale(1.35)}}
+body.urgent::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;box-shadow:inset 0 0 90px 24px rgba(255,40,80,.5);animation:vignette 1s ease-in-out infinite alternate}
+body.urgent5::after{box-shadow:inset 0 0 130px 44px rgba(255,20,60,.7);animation-duration:.35s}
+@keyframes vignette{from{opacity:.25}to{opacity:1}}
+body.urgent .progress-track{animation:trackShake .4s infinite}
+body.urgent5 .progress-track{animation-duration:.18s}
+@keyframes trackShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.penalty-pop{position:absolute;right:20px;top:-44px;background:#fff;color:#ff3355;border:3px solid #ff3355;font-size:1.5rem;font-weight:900;padding:2px 16px;border-radius:999px;pointer-events:none;z-index:60;animation:penaltyUp .9s ease forwards}
+@keyframes penaltyUp{0%{opacity:0;transform:translateY(10px) scale(.6)}20%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-22px) scale(1)}}
+
+/* 설정(개수) */
+.setting-row{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 22px;font-weight:800;color:var(--sub);font-size:1.1rem}
+.stepper{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #ffd6e7;border-radius:999px;padding:4px 8px}
+.stepper button{width:40px;height:40px;border-radius:50%;border:none;background:#ffe3ee;color:#ff5c93;font-size:1.5rem;font-weight:900;cursor:pointer}
+.stepper button:active{transform:scale(.9)}
+.stepper button:disabled{opacity:.35;cursor:default}
+.stepper b{min-width:36px;font-size:1.5rem;color:#ff5c93;text-align:center}
+
+/* 세로 화면(모바일): 위아래 배치 */
+@media (max-aspect-ratio:1/1){
+  .game-arena{grid-template-columns:1fr;grid-template-rows:repeat(2,minmax(0,1fr));gap:8px}
+  .left-theme,.right-theme{align-items:center}
+  .top-bar{flex-wrap:wrap;justify-content:center;padding:8px 12px}
+  .stage-badge{font-size:1rem;padding:5px 12px}
+  .star{width:30px;height:30px}
+  .btn{padding:8px 12px;font-size:.9rem}
+}
+</style>
+</head>
+<body>
+
+<audio id="bgmAudio" loop preload="auto"></audio>
+
+<header class="top-bar">
+  <div class="stage-badge" id="stageBadge">🔍 다른 그림 찾기</div>
+  <div class="stars-container" id="starsContainer"></div>
+  <div class="action-buttons">
+    <button class="btn btn-hint" onclick="useHint()">💡 힌트</button>
+    <button class="btn btn-bgm" id="bgmToggleBtn" onclick="toggleBgm()">🔊 음악 켬</button>
+    <button class="btn btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+  </div>
+</header>
+
+<main class="game-arena" id="arena">
+  <section class="board-wrapper left-theme">
+    <div class="board-label">원본 그림</div>
+    <div class="canvas-stage" id="leftStage">
+      <canvas id="leftCanvas"></canvas>
+      <div class="overlay-layer" id="leftOverlay"></div>
+    </div>
+  </section>
+  <section class="board-wrapper right-theme">
+    <div class="board-label">다른 그림</div>
+    <div class="canvas-stage" id="rightStage">
+      <canvas id="rightCanvas"></canvas>
+      <div class="overlay-layer" id="rightOverlay"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="bottom-timer-bar">
+  <span class="timer-icon">⏰</span>
+  <div class="progress-track"><div class="progress-fill" id="timerFill"></div></div>
+  <div class="timer-text" id="timerText">60초</div>
+</footer>
+
+<div class="overlay" id="modalOverlay">
+  <div class="modal-card">
+    <span class="modal-emoji" id="modalEmoji">🧚‍♀️</span>
+    <h2 class="modal-title" id="modalTitle">다른 그림 찾기</h2>
+    <p class="modal-desc" id="modalDesc">두 그림을 비교해서 다른 곳을 모두 터치해 보세요!<br>어느 쪽 그림을 눌러도 찾을 수 있어요.<br>⚠️ 틀리게 누르면 시간이 5초 줄어요!</p>
+    <div class="setting-row">
+      <span>🔍 찾을 개수</span>
+      <div class="stepper">
+        <button id="diffMinus" onclick="changeDiffCount(-1)">−</button>
+        <b id="diffCountText">3</b>
+        <button id="diffPlus" onclick="changeDiffCount(1)">＋</button>
+      </div>
+    </div>
+    <button class="btn-start" id="modalStartBtn" onclick="startGame()">게임 시작!</button>
+  </div>
+</div>
+
+<script>
+const PRSET = [{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/m5-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/m5-2.jpg?raw=true",
+A:[{"x":6,"y":48,"width":468,"height":385},
+{"x":988,"y":6,"width":509,"height":267},
+{"x":1255,"y":589,"width":243,"height":273},
+{"x":469,"y":1106,"width":128,"height":131},
+{"x":53,"y":450,"width":355,"height":740},
+{"x":1062,"y":885,"width":353,"height":362},
+{"x":947,"y":1337,"width":243,"height":253},
+{"x":422,"y":1392,"width":259,"height":230},
+{"x":994,"y":1622,"width":501,"height":485}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/ge1-1.png?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/ge1-2.png?raw=true",
+A:[{"x":70,"y":197,"width":363,"height":305},
+{"x":360,"y":584,"width":111,"height":129},
+{"x":869,"y":12,"width":566,"height":629},
+{"x":972,"y":1033,"width":245,"height":163},
+{"x":147,"y":1732,"width":310,"height":472},
+{"x":1339,"y":1515,"width":348,"height":506}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/gez1-1.png?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/gez1-2.png?raw=true",
+A:[{"x":89,"y":0,"width":511,"height":420},
+{"x":474,"y":542,"width":314,"height":276},
+{"x":977,"y":1245,"width":171,"height":156},
+{"x":507,"y":1152,"width":215,"height":198},
+{"x":726,"y":940,"width":264,"height":222},
+{"x":1115,"y":1559,"width":198,"height":218},
+{"x":149,"y":1296,"width":191,"height":173}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/je1-1.png?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/je1-2.png?raw=true",
+A:[{"x":1401,"y":1560,"width":129,"height":114},
+{"x":1418,"y":1747,"width":155,"height":128},
+{"x":755,"y":1254,"width":189,"height":235},
+{"x":596,"y":958,"width":327,"height":165},
+{"x":1377,"y":94,"width":258,"height":251},
+{"x":1460,"y":348,"width":351,"height":694},
+{"x":4,"y":171,"width":395,"height":530}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/n1-1.png?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/n1-2.png?raw=true",
+A:[{"x":978,"y":49,"width":752,"height":331},
+{"x":4,"y":206,"width":422,"height":652},
+{"x":1468,"y":436,"width":322,"height":630},
+{"x":113,"y":970,"width":430,"height":254},
+{"x":305,"y":1231,"width":282,"height":314},
+{"x":884,"y":1398,"width":182,"height":130},
+{"x":1192,"y":1370,"width":592,"height":161}],
+B:"wav/1.mp3"},
+               {L:"https://github.com/morningM00N/newbg/blob/main/img/261120/z1-1.jpeg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/z1-2.jpg?raw=true",
+A:[{"x":4,"y":165,"width":236,"height":245},
+{"x":336,"y":214,"width":153,"height":382},
+{"x":966,"y":459,"width":148,"height":142},
+{"x":1119,"y":210,"width":126,"height":372},
+{"x":1196,"y":601,"width":174,"height":155},
+{"x":607,"y":994,"width":176,"height":82},
+{"x":783,"y":801,"width":262,"height":232},
+{"x":1107,"y":909,"width":216,"height":141},
+{"x":329,"y":636,"width":341,"height":217},
+{"x":376,"y":960,"width":218,"height":206},
+{"x":921,"y":1256,"width":584,"height":371},
+{"x":1149,"y":1653,"width":397,"height":320},
+{"x":7,"y":1585,"width":439,"height":321},
+{"x":3,"y":914,"width":205,"height":242},
+{"x":136,"y":1243,"width":357,"height":239}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/z2-1.jpeg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/z2-2.jpg?raw=true",
+A:[{"x":846,"y":74,"width":179,"height":166},
+{"x":501,"y":251,"width":132,"height":122},
+{"x":391,"y":623,"width":239,"height":192},
+{"x":642,"y":598,"width":200,"height":155},
+{"x":851,"y":803,"width":224,"height":219},
+{"x":1166,"y":448,"width":225,"height":251},
+{"x":1135,"y":1221,"width":178,"height":125},
+{"x":1179,"y":1350,"width":203,"height":206},
+{"x":6,"y":1145,"width":210,"height":384},
+{"x":794,"y":1195,"width":258,"height":309},
+{"x":428,"y":1485,"width":437,"height":185}],
+B:"wav/1.mp3"},
+               {L:"https://github.com/morningM00N/newbg/blob/main/img/261120/m6-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/m6-2.jpg?raw=true",
+A:[{"x":42,"y":122,"width":235,"height":255},
+{"x":300,"y":19,"width":621,"height":155},
+{"x":522,"y":495,"width":254,"height":226},
+{"x":810,"y":969,"width":257,"height":146},
+{"x":129,"y":1065,"width":168,"height":140},
+{"x":302,"y":1122,"width":633,"height":231},
+{"x":841,"y":1389,"width":349,"height":320},
+{"x":32,"y":1247,"width":268,"height":280}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/261120/m7-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/261120/m7-2.jpg?raw=true",
+A:[{"x":12,"y":49,"width":600,"height":468},
+{"x":642,"y":22,"width":831,"height":390},
+{"x":1509,"y":21,"width":464,"height":745},
+{"x":304,"y":560,"width":627,"height":725},
+{"x":1428,"y":869,"width":479,"height":463},
+{"x":1042,"y":1160,"width":445,"height":484},
+{"x":724,"y":1577,"width":303,"height":293},
+{"x":1352,"y":2078,"width":613,"height":752},
+{"x":155,"y":2176,"width":437,"height":415},
+{"x":194,"y":1597,"width":499,"height":531}],
+B:"wav/1.mp3"},
+               {L:"https://github.com/morningM00N/newbg/blob/main/img/new/p1-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/p1-2.jpg?raw=true",
+A:[{"x":971,"y":351,"width":204,"height":206},
+{"x":71,"y":103,"width":412,"height":385},
+{"x":49,"y":885,"width":304,"height":445},
+{"x":1404,"y":616,"width":138,"height":130},
+{"x":867,"y":580,"width":203,"height":192},
+{"x":825,"y":1398,"width":336,"height":313},
+{"x":104,"y":2050,"width":155,"height":99},
+{"x":1365,"y":1889,"width":162,"height":136},
+{"x":1418,"y":930,"width":150,"height":249},
+{"x":566,"y":792,"width":195,"height":218}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/m2-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/m2-2.jpg?raw=true",
+A:[{"x":697,"y":529,"width":253,"height":287},
+{"x":1161,"y":400,"width":469,"height":478},
+{"x":137,"y":1026,"width":115,"height":178},
+{"x":393,"y":1130,"width":272,"height":196},
+{"x":313,"y":923,"width":219,"height":145},
+{"x":24,"y":1970,"width":304,"height":384},
+{"x":413,"y":1647,"width":441,"height":282},
+{"x":1173,"y":1931,"width":257,"height":365},
+{"x":558,"y":2103,"width":319,"height":188}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/l4-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/l4-2.jpg?raw=true",
+A:[{"x":1407,"y":1426,"width":182,"height":310},
+{"x":602,"y":1594,"width":224,"height":258},
+{"x":633,"y":1882,"width":160,"height":175},
+{"x":1024,"y":468,"width":144,"height":144},
+{"x":683,"y":175,"width":186,"height":142},
+{"x":233,"y":2103,"width":194,"height":174},
+{"x":1010,"y":2100,"width":255,"height":228},
+{"x":1595,"y":1467,"width":81,"height":277},
+{"x":375,"y":1864,"width":171,"height":189}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/l1-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/l1-2.jpg?raw=true",
+A:[{"x":526,"y":366,"width":317,"height":390},
+{"x":324,"y":1518,"width":183,"height":182},
+{"x":363,"y":2097,"width":352,"height":317},
+{"x":973,"y":1564,"width":216,"height":208},
+{"x":744,"y":1572,"width":150,"height":153},
+{"x":786,"y":1108,"width":198,"height":192},
+{"x":221,"y":409,"width":163,"height":121},
+{"x":283,"y":555,"width":91,"height":104},
+{"x":656,"y":162,"width":116,"height":128},
+{"x":267,"y":1021,"width":173,"height":148},
+{"x":717,"y":1358,"width":137,"height":105},
+{"x":1089,"y":1271,"width":100,"height":107},
+{"x":1214,"y":893,"width":292,"height":285}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/l3-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/l3-2.jpg?raw=true",
+A:[{"x":443,"y":1031,"width":132,"height":162},
+{"x":1032,"y":1371,"width":339,"height":273},
+{"x":1082,"y":1076,"width":173,"height":187},
+{"x":818,"y":1556,"width":180,"height":237},
+{"x":600,"y":2004,"width":497,"height":108},
+{"x":776,"y":2205,"width":140,"height":107},
+{"x":57,"y":1990,"width":207,"height":346},
+{"x":26,"y":626,"width":227,"height":186}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/j3-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/j3-2.jpg?raw=true",
+A:[{"x":834,"y":1924,"width":143,"height":189},
+{"x":680,"y":1616,"width":129,"height":112},
+{"x":1147,"y":1630,"width":102,"height":118},
+{"x":1278,"y":1372,"width":204,"height":180},
+{"x":1494,"y":1824,"width":224,"height":176},
+{"x":1420,"y":929,"width":249,"height":256},
+{"x":471,"y":1091,"width":221,"height":179},
+{"x":28,"y":1130,"width":362,"height":402},
+{"x":202,"y":2056,"width":194,"height":84},
+{"x":954,"y":325,"width":97,"height":103},
+{"x":1448,"y":521,"width":253,"height":144}],
+B:"wav/1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/j2-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/j2-2.jpg?raw=true",
+A:[{"x":431,"y":639,"width":203,"height":206},
+{"x":1531,"y":1122,"width":142,"height":143},
+{"x":930,"y":1213,"width":215,"height":182},
+{"x":1377,"y":1866,"width":211,"height":247},
+{"x":519,"y":1489,"width":137,"height":101},
+{"x":827,"y":707,"width":253,"height":147},
+{"x":879,"y":457,"width":235,"height":181},
+{"x":860,"y":267,"width":143,"height":110},
+{"x":1254,"y":318,"width":362,"height":456},
+{"x":1068,"y":1850,"width":126,"height":130},
+{"x":1153,"y":1484,"width":93,"height":112}],
+B:"1.mp3"},{L:"https://github.com/morningM00N/newbg/blob/main/img/new/j1-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/j1-2.jpg?raw=true",
+A:[{"x":1484,"y":1126,"width":176,"height":134},
+{"x":1450,"y":1423,"width":183,"height":140},
+{"x":1373,"y":1485,"width":46,"height":61},
+{"x":940,"y":1552,"width":149,"height":208},
+{"x":925,"y":1158,"width":107,"height":104},
+{"x":742,"y":1273,"width":118,"height":209},
+{"x":662,"y":1188,"width":80,"height":88},
+{"x":544,"y":1490,"width":87,"height":92},
+{"x":873,"y":742,"width":168,"height":94},
+{"x":741,"y":868,"width":147,"height":172},
+{"x":1364,"y":337,"width":163,"height":120},
+{"x":1146,"y":184,"width":212,"height":227},
+{"x":1122,"y":838,"width":176,"height":112},
+{"x":130,"y":1747,"width":227,"height":219}],
+B:"1.mp3"},
+  {
+    L: "https://github.com/morningM00N/newbg/blob/main/img/h1-1.png?raw=true",
+    R: "https://github.com/morningM00N/newbg/blob/main/img/h1-2.png?raw=true",
+    A: [
+      {x:1078,y:303,width:233,height:391},{x:560,y:804,width:63,height:56},
+      {x:854,y:1684,width:441,height:213},{x:46,y:1504,width:234,height:218},
+      {x:168,y:1189,width:237,height:208},{x:354,y:898,width:144,height:161},
+      {x:1038,y:1143,width:68,height:101},{x:744,y:775,width:131,height:167},
+      {x:845,y:1001,width:80,height:91}
+    ],
+    B: "wav/1.mp3"
+  },{L:"https://github.com/morningM00N/newbg/blob/main/img/new/d1-1.jpg?raw=true",
+R:"https://github.com/morningM00N/newbg/blob/main/img/new/d1-2.jpg?raw=true",
+A:[{"x":650,"y":1333,"width":283,"height":158},
+{"x":1315,"y":1268,"width":159,"height":140},
+{"x":1198,"y":1324,"width":107,"height":124},
+{"x":1919,"y":1343,"width":93,"height":124},
+{"x":1059,"y":856,"width":207,"height":368},
+{"x":1450,"y":656,"width":191,"height":159},
+{"x":94,"y":313,"width":576,"height":366},
+{"x":243,"y":1032,"width":286,"height":251},
+{"x":0,"y":884,"width":220,"height":215},
+{"x":636,"y":806,"width":102,"height":160},
+{"x":781,"y":746,"width":230,"height":164},
+{"x":1796,"y":1677,"width":187,"height":119}],
+B:"wav/1.mp3"},
+  {
+    L: "https://github.com/morningM00N/newbg/blob/main/img/h2-1.png?raw=true",
+    R: "https://github.com/morningM00N/newbg/blob/main/img/h2-2.png?raw=true",
+    A: [
+      {x:1148,y:641,width:168,height:192},{x:358,y:789,width:264,height:168},
+      {x:571,y:1123,width:143,height:131},{x:427,y:1274,width:93,height:91},
+      {x:865,y:1411,width:236,height:274},{x:1184,y:1667,width:113,height:104},
+      {x:131,y:1665,width:173,height:133},{x:154,y:9,width:201,height:160},
+      {x:1043,y:234,width:196,height:150},{x:1206,y:45,width:83,height:46},
+      {x:731,y:2,width:71,height:63}
+    ],
+    B: "wav/2.mp3"
+  },
+  {
+    L: "https://github.com/morningM00N/newbg/blob/main/img/z1-1.jpg?raw=true",
+    R: "https://github.com/morningM00N/newbg/blob/main/img/z1-2.jpg?raw=true",
+    A: [
+      {x:609,y:414,width:66,height:66},{x:129,y:709,width:81,height:72},
+      {x:249,y:609,width:201,height:101},{x:141,y:630,width:32,height:42},
+      {x:27,y:412,width:44,height:53},{x:196,y:277,width:124,height:93},
+      {x:511,y:275,width:50,height:55},{x:517,y:377,width:44,height:32},
+      {x:328,y:79,width:93,height:77},{x:532,y:895,width:77,height:86}
+    ],
+    B: "wav/2.mp3"
+  },
+  {
+    L: "https://github.com/morningM00N/newbg/blob/main/img/m1-1.jpg?raw=true",
+    R: "https://github.com/morningM00N/newbg/blob/main/img/m1-2.jpg?raw=true",
+    A: [
+      {x:115,y:856,width:363,height:303},{x:84,y:1139,width:409,height:218},
+      {x:117,y:1769,width:128,height:133},{x:355,y:1648,width:199,height:261},
+      {x:1348,y:1134,width:246,height:332},{x:1529,y:2638,width:236,height:169},
+      {x:839,y:191,width:384,height:227},{x:118,y:101,width:406,height:327}
+    ],
+    B: "wav/2.mp3"
+  },
+  {
+    L: "https://github.com/morningM00N/newbg/blob/main/img/z2-1.jpg?raw=true",
+    R: "https://github.com/morningM00N/newbg/blob/main/img/z2-2.jpg?raw=true",
+    A: [
+      {x:834,y:2501,width:348,height:808},{x:10,y:2035,width:498,height:510},
+      {x:1402,y:1257,width:316,height:330},{x:1932,y:47,width:438,height:514},
+      {x:1820,y:653,width:266,height:520},{x:774,y:57,width:168,height:186}
+    ],
+    B: "wav/2.mp3"
+  }
+];
+
+const WRONG_PENALTY_SEC = 5;                              // 오답 시 줄어드는 시간
+const DIFF_MIN = 1;
+const DIFF_MAX = Math.min(...PRSET.map(p => p.A.length)); // 모든 문제에서 보장되는 최대 개수
+let diffCount = 3;                                        // 기본 출제 개수
+try { const v = parseInt(localStorage.getItem('diffCount'), 10); if (v) diffCount = v; } catch (e) {}
+diffCount = Math.max(DIFF_MIN, Math.min(DIFF_MAX, diffCount));
+const GAME_DURATION_SEC = 60;
+const TOUCH_PADDING_PX = 25;
+const STAR_PATH = "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+
+let currentSetIndex = -1, imgL = null, imgR = null;
+let activeDiffs = [], foundIds = [];
+let timerInterval = null, isPlaying = false, isBgmMuted = false, isLoading = false;
+
+const $ = id => document.getElementById(id);
+const bgmAudio = $('bgmAudio');
+const leftCanvas = $('leftCanvas'), rightCanvas = $('rightCanvas');
+const leftStage = $('leftStage'), rightStage = $('rightStage');
+
+/* ---------- 효과음 (첫 사용자 제스처 때 생성) ---------- */
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function tone(freqs, step, dur, vol, type = 'sine') {
+  const ctx = getAudioCtx(), now = ctx.currentTime;
+  freqs.forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(), t = now + i * step;
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.01, t + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur);
+  });
+}
+let tickToggle = false;
+function playTick(urgent) {
+  tickToggle = !tickToggle; // 짹(높은 음) / 깍(낮은 음) 번갈아
+  const f = tickToggle ? (urgent ? 2200 : 1800) : (urgent ? 1500 : 1200);
+  tone([f], 0, 0.06, urgent ? 0.2 : 0.11, 'triangle');
+}
+function playSoundEffect(type) {
+  if (type === 'correct') tone([523.25, 659.25, 783.99], 0.1, 0.25, 0.22);
+  else if (type === 'wrong') tone([220, 170], 0.09, 0.15, 0.16);
+  else if (type === 'clear') tone([523.25, 659.25, 783.99, 1046.5], 0.12, 0.45, 0.22);
+}
+
+/* ---------- 유틸 ---------- */
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('이미지를 불러올 수 없어요. 인터넷 연결을 확인해 주세요.'));
+    img.src = src;
+  });
+}
+function pickRandomProblemIndex() {
+  if (PRSET.length <= 1) return 0;
+  let n;
+  do { n = Math.floor(Math.random() * PRSET.length); } while (n === currentSetIndex);
+  return n;
+}
+function pickRandomDiffs(pool, count) {
+  const arr = pool.map((item, id) => ({ ...item, id }));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, Math.min(count, arr.length));
+}
+function renderStars(count) {
+  $('starsContainer').innerHTML =
+    Array.from({ length: count }, () => `<svg class="star" viewBox="0 0 24 24"><path d="${STAR_PATH}"/></svg>`).join('');
+}
+function updateStepper() {
+  $('diffCountText').textContent = diffCount;
+  $('diffMinus').disabled = diffCount <= DIFF_MIN;
+  $('diffPlus').disabled = diffCount >= DIFF_MAX;
+  if (!isPlaying) renderStars(diffCount);
+}
+function changeDiffCount(d) {
+  diffCount = Math.max(DIFF_MIN, Math.min(DIFF_MAX, diffCount + d));
+  try { localStorage.setItem('diffCount', diffCount); } catch (e) {}
+  updateStepper();
+}
+updateStepper();
+
+/* ---------- 게임 시작 ---------- */
+async function startGame() {
+  if (isLoading) return;
+  getAudioCtx();
+  const btn = $('modalStartBtn');
+  const label = btn.textContent;
+  isLoading = true; btn.disabled = true; btn.textContent = '불러오는 중... ⏳';
+
+  currentSetIndex = pickRandomProblemIndex();
+  const problem = PRSET[currentSetIndex];
+  try {
+    [imgL, imgR] = await Promise.all([loadImage(problem.L), loadImage(problem.R)]);
+  } catch (err) {
+    alert(err.message);
+    isLoading = false; btn.disabled = false; btn.textContent = label;
+    return;
+  }
+  isLoading = false; btn.disabled = false; btn.textContent = label;
+
+  $('modalOverlay').classList.add('hidden');
+  $('leftOverlay').innerHTML = '';
+  $('rightOverlay').innerHTML = '';
+
+  activeDiffs = pickRandomDiffs(problem.A, diffCount);
+  foundIds = [];
+  isPlaying = true;
+
+  $('stageBadge').textContent = `🔍 ${currentSetIndex + 1}번 그림`;
+  renderStars(activeDiffs.length);
+
+  bgmAudio.pause();
+  if (problem.B) {
+    bgmAudio.src = problem.B;
+    bgmAudio.currentTime = 0;
+    if (!isBgmMuted) bgmAudio.play().catch(() => {});
+  }
+
+  renderCanvases();
+  startTimer();
+}
+
+function renderCanvases() {
+  const W = imgL.naturalWidth, H = imgL.naturalHeight;
+  leftCanvas.width = rightCanvas.width = W;
+  leftCanvas.height = rightCanvas.height = H;
+
+  leftCanvas.getContext('2d').drawImage(imgL, 0, 0, W, H);
+
+  const rctx = rightCanvas.getContext('2d');
+  rctx.drawImage(imgL, 0, 0, W, H);
+  activeDiffs.forEach(r => {
+    rctx.drawImage(imgR, r.x, r.y, r.width, r.height, r.x, r.y, r.width, r.height);
+  });
+
+  fitCanvasesToScreen();
+}
+
+/* ---------- 화면에 꽉 차게 크기 맞추기 ---------- */
+function fitCanvasesToScreen() {
+  if (!imgL) return;
+  const wrap = leftStage.parentElement;
+  const cs = getComputedStyle(wrap);
+  const label = wrap.querySelector('.board-label');
+  const labelH = label.offsetHeight + parseFloat(getComputedStyle(label).marginBottom);
+
+  const stageBorder = 8; // .canvas-stage 좌우/상하 테두리 4px × 2
+  const availW = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - stageBorder;
+  const availH = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - labelH - stageBorder;
+  if (availW <= 0 || availH <= 0) return;
+
+  const W = imgL.naturalWidth, H = imgL.naturalHeight;
+  const scale = Math.min(availW / W, availH / H); // 확대 상한 없음 → 영역에 꽉 참
+  const w = Math.floor(W * scale), h = Math.floor(H * scale);
+
+  [leftCanvas, rightCanvas].forEach(c => {
+    c.style.width = w + 'px';
+    c.style.height = h + 'px';
+  });
+}
+// 창 크기, 전체화면 전환 등 영역 크기가 바뀔 때마다 자동 재계산
+new ResizeObserver(() => fitCanvasesToScreen()).observe($('arena'));
+
+/* ---------- 클릭 처리 ---------- */
+leftStage.addEventListener('click', e => handleStageClick(e, leftStage, leftCanvas));
+rightStage.addEventListener('click', e => handleStageClick(e, rightStage, rightCanvas));
+
+function handleStageClick(event, stageEl, canvasEl) {
+  if (!isPlaying || !imgL) return;
+
+  const rect = canvasEl.getBoundingClientRect(); // 테두리 제외한 실제 그림 영역
+  const cx = event.clientX - rect.left, cy = event.clientY - rect.top;
+  if (cx < 0 || cy < 0 || cx > rect.width || cy > rect.height) return;
+
+  const clickX = cx * (imgL.naturalWidth / rect.width);
+  const clickY = cy * (imgL.naturalHeight / rect.height);
+
+  const matched = activeDiffs.find(it =>
+    !foundIds.includes(it.id) &&
+    clickX >= it.x - TOUCH_PADDING_PX && clickX <= it.x + it.width + TOUCH_PADDING_PX &&
+    clickY >= it.y - TOUCH_PADDING_PX && clickY <= it.y + it.height + TOUCH_PADDING_PX
+  );
+
+  if (matched) {
+    foundIds.push(matched.id);
+    playSoundEffect('correct');
+    document.querySelectorAll(`.hint-ring[data-id="${matched.id}"]`).forEach(el => el.remove());
+    addMarkerRing('leftOverlay', matched, 'found-ring');
+    addMarkerRing('rightOverlay', matched, 'found-ring');
+    const stars = $('starsContainer').querySelectorAll('.star');
+    if (stars[foundIds.length - 1]) stars[foundIds.length - 1].classList.add('earned');
+    if (foundIds.length === activeDiffs.length) endGame(true);
+  } else {
+    playSoundEffect('wrong');
+    applyPenalty();
+    stageEl.classList.remove('shake');
+    void stageEl.offsetWidth;
+    stageEl.classList.add('shake');
+
+    const stageRect = stageEl.getBoundingClientRect();
+    const mark = document.createElement('div');
+    mark.className = 'wrong-mark';
+    mark.textContent = '❌';
+    mark.style.left = `${event.clientX - stageRect.left - 4}px`;
+    mark.style.top = `${event.clientY - stageRect.top - 4}px`;
+    stageEl.querySelector('.overlay-layer').appendChild(mark);
+    setTimeout(() => mark.remove(), 600);
+  }
+}
+
+function addMarkerRing(overlayId, item, className) {
+  const W = imgL.naturalWidth, H = imgL.naturalHeight;
+  const minSize = Math.min(W, H) * 0.08;
+  const boxW = Math.max(item.width, minSize), boxH = Math.max(item.height, minSize);
+  const cX = item.x + item.width / 2, cY = item.y + item.height / 2;
+
+  const ring = document.createElement('div');
+  ring.className = className;
+  ring.dataset.id = item.id;
+  ring.style.left = `${((cX - boxW / 2) / W) * 100}%`;
+  ring.style.top = `${((cY - boxH / 2) / H) * 100}%`;
+  ring.style.width = `${(boxW / W) * 100}%`;
+  ring.style.height = `${(boxH / H) * 100}%`;
+  $(overlayId).appendChild(ring);
+}
+
+function useHint() {
+  if (!isPlaying) return;
+  const remaining = activeDiffs.filter(d => !foundIds.includes(d.id));
+  if (!remaining.length) return;
+  document.querySelectorAll('.hint-ring').forEach(el => el.remove());
+  addMarkerRing('leftOverlay', remaining[0], 'hint-ring');
+  addMarkerRing('rightOverlay', remaining[0], 'hint-ring');
+}
+
+/* ---------- 타이머 / 종료 ---------- */
+let timerStart = 0, penaltyMs = 0, lastHalf = 0;
+
+function setUrgent(level) { // 0: 평상시, 1: 마지막 10초, 2: 마지막 5초
+  document.body.classList.toggle('urgent', level >= 1);
+  document.body.classList.toggle('urgent5', level >= 2);
+  $('timerText').classList.toggle('urgent', level >= 1);
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerStart = Date.now();
+  penaltyMs = 0;
+  lastHalf = GAME_DURATION_SEC * 2;
+  tickToggle = false;
+  setUrgent(0);
+  $('timerFill').style.width = '100%';
+  $('timerFill').className = 'progress-fill';
+  $('timerText').textContent = `${GAME_DURATION_SEC}초`;
+  timerInterval = setInterval(updateTimer, 100);
+}
+
+function updateTimer() {
+  if (!isPlaying) return;
+  const total = GAME_DURATION_SEC * 1000;
+  const remain = Math.max(0, total - (Date.now() - timerStart) - penaltyMs);
+  const pct = (remain / total) * 100;
+  const fill = $('timerFill');
+
+  fill.style.width = `${pct}%`;
+  fill.className = 'progress-fill' + (pct <= 25 ? ' danger' : pct <= 50 ? ' warning' : '');
+  $('timerText').textContent = `${Math.ceil(remain / 1000)}초`;
+
+  const level = remain <= 5000 ? 2 : remain <= 10000 ? 1 : 0;
+  setUrgent(level);
+
+  // 평소엔 1초마다, 마지막 5초는 0.5초마다 째깍
+  const half = Math.ceil(remain / 500);
+  if (half !== lastHalf && remain > 0) {
+    lastHalf = half;
+    if (level === 2 || half % 2 === 0) playTick(level >= 1);
+  }
+  if (remain <= 0) endGame(false);
+}
+
+function applyPenalty() {
+  if (!isPlaying) return;
+  penaltyMs += WRONG_PENALTY_SEC * 1000;
+  const pop = document.createElement('div');
+  pop.className = 'penalty-pop';
+  pop.textContent = `-${WRONG_PENALTY_SEC}초`;
+  $('timerText').parentElement.appendChild(pop);
+  setTimeout(() => pop.remove(), 900);
+  updateTimer();
+}
+
+function endGame(isWin) {
+  if (!isPlaying) return; // 중복 호출 방지
+  isPlaying = false;
+  clearInterval(timerInterval);
+  setUrgent(0);
+
+  const emoji = $('modalEmoji'), title = $('modalTitle'), desc = $('modalDesc'), btn = $('modalStartBtn');
+  if (isWin) {
+    playSoundEffect('clear');
+    emoji.textContent = '🎉';
+    title.textContent = '우와! 정말 잘했어요!';
+    desc.textContent = `반짝이는 별 ${activeDiffs.length}개를 모두 모았어요! 다른 문제도 해볼까요?`;
+    btn.textContent = '다음 문제 하기!';
+  } else {
+    emoji.textContent = '⏰';
+    title.textContent = '시간이 다 되었어요!';
+    desc.textContent = `아쉽지만 ${foundIds.length}개를 찾았어요. 다시 도전해 볼까요?`;
+    btn.textContent = '다시 하기!';
+  }
+  setTimeout(() => $('modalOverlay').classList.remove('hidden'), isWin ? 700 : 200);
+}
+
+/* ---------- 음악 / 전체화면 ---------- */
+function toggleBgm() {
+  isBgmMuted = !isBgmMuted;
+  const btn = $('bgmToggleBtn');
+  if (isBgmMuted) {
+    bgmAudio.pause();
+    btn.textContent = '🔇 음악 끔';
+  } else {
+    if (isPlaying && bgmAudio.src) bgmAudio.play().catch(() => {});
+    btn.textContent = '🔊 음악 켬';
+  }
+}
+
+const fsEl = document.documentElement;
+const canFullscreen = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+if (!canFullscreen) $('fullscreenBtn').style.display = 'none'; // iPhone 등 미지원 기기
+
+function toggleFullscreen() {
+  const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!isFs) (fsEl.requestFullscreen || fsEl.webkitRequestFullscreen).call(fsEl);
+  else (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+}
+// 클래스/버튼 상태는 실제 전체화면 상태 변화 이벤트에서만 갱신
+function syncFullscreenState() {
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  document.body.classList.toggle('fullscreen-mode', isFs);
+  $('fullscreenBtn').textContent = isFs ? '⛶ 전체화면 끔' : '⛶ 전체화면';
+  fitCanvasesToScreen();
+}
+document.addEventListener('fullscreenchange', syncFullscreenState);
+document.addEventListener('webkitfullscreenchange', syncFullscreenState);
+</script>
+</body>
+</html>

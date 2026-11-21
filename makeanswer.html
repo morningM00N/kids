@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>틀린 그림 찾기 정답 생성기</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .instructions {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #fff;
+            display: inline-block;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 300px;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+
+    <div class="main-content">
+        <div class="instructions">
+            <h3 style="margin-top:0;">정답 영역 지정 도구</h3>
+            <ul style="margin-bottom:0; padding-left: 20px;">
+                <li><b>좌/우 방향키</b>: 1.png / 2.png 전환 (비교하며 확인)</li>
+                <li><b>마우스 좌클릭 + 드래그</b>: 파란색 점선으로 정답 영역 그리기</li>
+                <li><b>마우스 우클릭</b>: 현재 그린 영역을 정답 리스트에 저장 (빨간색으로 고정됨)</li>
+            </ul>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                <label><b>이미지 1 URL</b>
+                    <input type="text" id="img1Input" style="width:100%; padding:6px; box-sizing:border-box;" placeholder="이미지 1 URL 입력">
+                </label>
+                <label><b>이미지 2 URL</b>
+                    <input type="text" id="img2Input" style="width:100%; padding:6px; box-sizing:border-box;" placeholder="이미지 2 URL 입력">
+                </label>
+                <button id="loadBtn" style="background-color:#007bff;">이미지 로드</button>
+            </div>
+        </div>
+        
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <h3 style="margin:0;">저장된 좌표 데이터</h3>
+        <button id="clearBtn">모든 좌표 초기화</button>
+        <textarea id="output" readonly>[]</textarea>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const output = document.getElementById('output');
+        const img1Input = document.getElementById('img1Input');
+        const img2Input = document.getElementById('img2Input');
+        const loadBtn = document.getElementById('loadBtn');
+
+        // 이미지 객체 생성 및 로드
+        const img1 = new Image();
+        const img2 = new Image();
+        img1.src = 'https://github.com/morningM00N/newbg/blob/main/img/m1-3.jpg?raw=true';
+        img2.src = 'https://github.com/morningM00N/newbg/blob/main/img/m1-4.jpg?raw=true';
+        img1Input.value = img1.src;
+        img2Input.value = img2.src;
+
+        let currentImg = img1;
+        let isDrawing = false;
+        let startX = 0, startY = 0;
+        let currentX = 0, currentY = 0;
+        let hasCurrentBox = false;
+
+        const savedBoxes = [];
+
+        // 이미지가 로드되면 캔버스 크기를 이미지 크기에 맞춤
+        img1.onload = () => {
+            canvas.width = img1.width;
+            canvas.height = img1.height;
+            draw();
+        };
+
+        // 이미지 로드 버튼: 입력된 URL로 이미지 교체
+        loadBtn.addEventListener('click', () => {
+            const url1 = img1Input.value.trim();
+            const url2 = img2Input.value.trim();
+            if (url1) img1.src = url1;
+            if (url2) img2.src = url2;
+            currentImg = img1;
+            draw();
+        });
+
+        // 좌우 방향키로 이미지 전환
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                currentImg = img1;
+                draw();
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                currentImg = img2;
+                draw();
+                e.preventDefault();
+            }
+        });
+
+        // 1초마다 자동으로 이미지 전환
+        setInterval(() => {
+            currentImg = (currentImg === img1) ? img2 : img1;
+            draw();
+        }, 1000);
+
+
+        // 마우스 이벤트 처리 (터치 디바이스에서는 무시)
+        let mouseLongPressTimer = null;
+        let mouseMoved = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (isTouchDevice) return; // 터치 디바이스에서는 마우스 이벤트 무시
+            if (e.button === 0) { // 좌클릭 (영역 그리기 시작)
+                isDrawing = true;
+                mouseMoved = false;
+                const rect = canvas.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+                currentX = startX;
+                currentY = startY;
+                hasCurrentBox = true;
+                draw();
+
+                // 마우스 롱프레스 타이머 (움직이지 않고 0.5초 유지하면 저장)
+                mouseLongPressTimer = setTimeout(() => {
+                    if (!mouseMoved) {
+                        saveCurrentBox();
+                    }
+                }, 500);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isTouchDevice) return; // 터치 디바이스에서는 마우스 이벤트 무시
+            if (!isDrawing) return;
+            mouseMoved = true;
+            clearTimeout(mouseLongPressTimer);
+            const rect = canvas.getBoundingClientRect();
+            currentX = e.clientX - rect.left;
+            currentY = e.clientY - rect.top;
+            draw();
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (isTouchDevice) return; // 터치 디바이스에서는 마우스 이벤트 무시
+            clearTimeout(mouseLongPressTimer);
+            if (e.button === 0) { // 좌클릭 해제 (영역 그리기 완료)
+                isDrawing = false;
+                draw();
+            }
+        });
+
+
+
+        // 현재 그려진 박스를 저장하는 공통 함수
+        function saveCurrentBox() {
+            if (hasCurrentBox) {
+                const x = Math.min(startX, currentX);
+                const y = Math.min(startY, currentY);
+                const w = Math.abs(currentX - startX);
+                const h = Math.abs(currentY - startY);
+
+                // 너무 작은 영역(실수 클릭)은 저장 방지
+                if (w > 5 && h > 5) {
+                    savedBoxes.push({
+                        x: Math.round(x),
+                        y: Math.round(y),
+                        width: Math.round(w),
+                        height: Math.round(h)
+                    });
+                    updateOutput();
+                }
+                hasCurrentBox = false; // 저장 후 현재 그리기 박스 초기화
+                draw();
+            }
+        }
+
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // 기본 우클릭 메뉴 방지
+            saveCurrentBox();
+        });
+
+        // 터치 이벤트 처리 (모바일/터치 환경 지원)
+        let longPressTimer = null;
+        let isTouchDevice = false;
+        let touchMoved = false;
+        let touchDrawing = false;
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isTouchDevice = true;
+            touchMoved = false;
+            touchDrawing = false;
+
+            // 롱프레스 타이머 시작 (움직이지 않고 0.5초 유지하면 저장)
+            longPressTimer = setTimeout(() => {
+                if (!touchMoved) {
+                    // 움직이지 않았으면 롱프레스 → 현재 그려진 영역 저장
+                    saveCurrentBox();
+                }
+            }, 500);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            touchMoved = true;
+            clearTimeout(longPressTimer);
+
+            // 드래그 시작 (첫 touchmove에서 그리기 시작)
+            if (!touchDrawing) {
+                touchDrawing = true;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                startX = touch.clientX - rect.left;
+                startY = touch.clientY - rect.top;
+                currentX = startX;
+                currentY = startY;
+                hasCurrentBox = true;
+                draw();
+            } else {
+                // 영역 그리기 (드래그 계속)
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                currentX = touch.clientX - rect.left;
+                currentY = touch.clientY - rect.top;
+                draw();
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            clearTimeout(longPressTimer);
+        });
+
+
+
+
+
+
+        function draw() {
+            // 1. 배경 이미지 그리기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (currentImg.complete && currentImg.naturalWidth !== 0) {
+                ctx.drawImage(currentImg, 0, 0);
+            } else {
+                // 이미지가 없을 경우 플레이스홀더 텍스트
+                ctx.fillStyle = '#ccc';
+                ctx.fillRect(0, 0, canvas.width || 800, canvas.height || 600);
+                ctx.fillStyle = '#000';
+                ctx.font = '20px Arial';
+                ctx.fillText('이미지를 불러올 수 없습니다. (1.png, 2.png 확인 필요)', 20, 30);
+            }
+
+            // 2. 우클릭으로 저장 완료된 박스들 (빨간색)
+            savedBoxes.forEach(box => {
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+                
+                // 반투명 배경 효과
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.fillRect(box.x, box.y, box.width, box.height);
+            });
+
+            // 3. 현재 마우스로 드래그 중인 임시 박스 (파란색 점선)
+            if (hasCurrentBox) {
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]); // 점선
+                
+                // 역방향 드래그 대응
+                const x = Math.min(startX, currentX);
+                const y = Math.min(startY, currentY);
+                const w = Math.abs(currentX - startX);
+                const h = Math.abs(currentY - startY);
+                
+                ctx.strokeRect(x, y, w, h);
+                ctx.setLineDash([]); // 점선 초기화
+            }
+        }
+
+        function updateOutput() {
+            // 각 요소를 한 줄씩 출력
+            output.value = "{L:\""+img1.src+"\",\nR:\""+img2.src+'",\nA:['+savedBoxes.map(box => JSON.stringify(box)).join(',\n')+"],\nB:\"wav/1.mp3\"}";
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (confirm('저장된 모든 좌표를 초기화하시겠습니까?')) {
+                savedBoxes.length = 0;
+                hasCurrentBox = false;
+                updateOutput();
+                draw();
+            }
+        });
+    </script>
+</body>
+</html>
