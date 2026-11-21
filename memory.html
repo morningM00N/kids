@@ -538,11 +538,14 @@ let lockBoard = false;
 let matchedPairs = 0;
 let totalPairs = 6;
 let moves = 0;
+let isPeeking = false;
+let peekTimer = null;
 const boardEl = document.getElementById('board');
 const pairStatusEl = document.getElementById('pairStatus');
 const moveStatusEl = document.getElementById('moveStatus');
 const winOverlayEl = document.getElementById('winOverlay');
 const winMessageEl = document.getElementById('winMessage');
+const peekBtn = document.getElementById('peekBtn');
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(type) {
 if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -666,6 +669,7 @@ fallbackIdx++;
 return shuffle([...selectedItems, ...selectedItems]);
 }
 function initGame() {
+if (isPeeking) endPeek();
 stopConfetti();
 if (window.speechSynthesis.speaking) {
 window.speechSynthesis.cancel();
@@ -806,18 +810,28 @@ function updateStatusUI() {
 pairStatusEl.textContent = `찾은 짝: ${matchedPairs} / ${totalPairs}`;
 moveStatusEl.textContent = `시도: ${moves}번`;
 }
-function peekCards() {
-if (lockBoard) return;
-lockBoard = true;
-const allCards = document.querySelectorAll('.card:not(.matched)');
-allCards.forEach(c => c.classList.add('flipped'));
-playSound('flip');
-setTimeout(() => {
-allCards.forEach(c => {
+function endPeek() {
+clearTimeout(peekTimer);
+peekTimer = null;
+isPeeking = false;
+document.querySelectorAll('.card:not(.matched)').forEach(c => {
 if (c !== firstCard) c.classList.remove('flipped');
 });
+peekBtn.textContent = '👀 살짝 보기';
 lockBoard = false;
-}, 15000);
+}
+function peekCards() {
+if (isPeeking) {
+endPeek();
+return;
+}
+if (lockBoard) return;
+isPeeking = true;
+lockBoard = true;
+document.querySelectorAll('.card:not(.matched)').forEach(c => c.classList.add('flipped'));
+playSound('flip');
+peekBtn.textContent = '🙈 다시 가리기';
+peekTimer = setTimeout(endPeek, 15000);
 }
 function handleWin() {
 playSound('win');
@@ -844,7 +858,7 @@ initGame();
 });
 document.getElementById('restartBtn').addEventListener('click', initGame);
 document.getElementById('playAgainBtn').addEventListener('click', initGame);
-document.getElementById('peekBtn').addEventListener('click', peekCards);
+peekBtn.addEventListener('click', peekCards);
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 function toggleFullscreen() {
 const isFullscreen = document.fullscreenElement ||
@@ -866,11 +880,11 @@ fullscreenBtn.textContent = '⛶ 전체화면 종료';
 } else {
 if (document.exitFullscreen) {
 document.exitFullscreen();
-} else if (el.webkitExitFullscreen) {
+} else if (document.webkitExitFullscreen) {
 document.webkitExitFullscreen();
-} else if (el.mozCancelFullScreen) {
+} else if (document.mozCancelFullScreen) {
 document.mozCancelFullScreen();
-} else if (el.msExitFullscreen) {
+} else if (document.msExitFullscreen) {
 document.msExitFullscreen();
 }
 fullscreenBtn.textContent = '⛶ 전체화면';

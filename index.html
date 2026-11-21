@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>서율이의 반짝반짝 놀이터 🌈</title>
+<style>
+:root{
+  --bg: linear-gradient(135deg, #ffe8f3 0%, #fff7db 50%, #e4f5ff 100%);
+  --text: #4a4458;
+  --sub: #7a728a;
+}
+*{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body{
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  font-family: 'NanumSquareRound', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  touch-action: manipulation;
+}
+body{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(16px, 2.8vh, 32px) clamp(16px, 2.6vw, 40px);
+  gap: clamp(14px, 2.4vh, 28px);
+}
+
+/* 배경 둥실둥실 장식 */
+.bg-deco{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+.deco-item{
+  position: absolute;
+  font-size: clamp(2rem, 4vw, 4rem);
+  opacity: 0.22;
+  animation: floatDeco 6s ease-in-out infinite;
+}
+.deco-item:nth-child(1){ top: 8%; left: 6%; animation-delay: 0s; }
+.deco-item:nth-child(2){ top: 14%; right: 10%; animation-delay: -1.5s; }
+.deco-item:nth-child(3){ bottom: 10%; left: 12%; animation-delay: -3s; }
+.deco-item:nth-child(4){ bottom: 12%; right: 8%; animation-delay: -4.5s; }
+@keyframes floatDeco{
+  0%, 100%{ transform: translateY(0) rotate(-6deg); }
+  50%{ transform: translateY(-16px) rotate(8deg); }
+}
+
+/* 상단 헤더 */
+.header{
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.title-pill{
+  background: rgba(255, 255, 255, 0.94);
+  border: 4px solid #ffffff;
+  border-radius: 999px;
+  padding: clamp(10px, 1.5vh, 18px) clamp(24px, 3.5vw, 48px);
+  box-shadow: 0 10px 28px rgba(255, 133, 179, 0.2);
+  text-align: center;
+}
+.title-pill h1{
+  font-size: clamp(1.5rem, 3.2vw, 2.8rem);
+  font-weight: 900;
+  color: #ff5c93;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.title-pill p{
+  font-size: clamp(0.95rem, 1.4vw, 1.3rem);
+  font-weight: 800;
+  color: var(--sub);
+  margin-top: 4px;
+}
+.btn-fs{
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 3px solid #b7e4c7;
+  background: #f0f7f0;
+  color: #2f9e44;
+  border-radius: 999px;
+  padding: clamp(10px, 1.4vh, 14px) clamp(14px, 1.8vw, 22px);
+  font-family: inherit;
+  font-size: clamp(0.9rem, 1.2vw, 1.15rem);
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #94d3a8;
+  transition: transform 0.12s, box-shadow 0.12s;
+  white-space: nowrap;
+}
+.btn-fs:active{
+  transform: translateY(calc(-50% + 3px));
+  box-shadow: 0 2px 0 #94d3a8;
+}
+
+/* 메인 게임 선택 그리드 (4열) */
+.game-grid{
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1520px;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(14px, 1.8vw, 26px);
+  align-items: stretch;
+}
+
+.game-card{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vh, 24px);
+  padding: clamp(18px, 2.8vh, 36px) clamp(12px, 1.6vw, 22px);
+  border-radius: 36px;
+  text-decoration: none;
+  border: 6px solid #ffffff;
+  cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease;
+  overflow: hidden;
+}
+.game-card:hover{
+  transform: translateY(-6px);
+}
+.game-card:active, .game-card.is-pressed{
+  transform: translateY(6px) scale(0.97);
+}
+
+/* 카드별 파스텔 테마 */
+.card-find{
+  background: linear-gradient(180deg, #fff5f9 0%, #ffe0ee 100%);
+  box-shadow: 0 14px 0 #ff9ec2, 0 22px 36px rgba(255, 92, 147, 0.22);
+}
+.card-find:active, .card-find.is-pressed{
+  box-shadow: 0 6px 0 #ff9ec2, 0 10px 20px rgba(255, 92, 147, 0.2);
+}
+.card-find .card-badge{ background: #ff5c93; }
+.card-find .card-title{ color: #d6336c; }
+
+.card-memory{
+  background: linear-gradient(180deg, #fffdf0 0%, #fff0b8 100%);
+  box-shadow: 0 14px 0 #f6c445, 0 22px 36px rgba(245, 158, 11, 0.22);
+}
+.card-memory:active, .card-memory.is-pressed{
+  box-shadow: 0 6px 0 #f6c445, 0 10px 20px rgba(245, 158, 11, 0.2);
+}
+.card-memory .card-badge{ background: #f59e0b; }
+.card-memory .card-title{ color: #b45309; }
+
+.card-co{
+  background: linear-gradient(180deg, #f2f9ff 0%, #d4ecff 100%);
+  box-shadow: 0 14px 0 #7cc0ff, 0 22px 36px rgba(59, 130, 246, 0.22);
+}
+.card-co:active, .card-co.is-pressed{
+  box-shadow: 0 6px 0 #7cc0ff, 0 10px 20px rgba(59, 130, 246, 0.2);
+}
+.card-co .card-badge{ background: #3b82f6; }
+.card-co .card-title{ color: #1d4ed8; }
+
+.card-hangul{
+  background: linear-gradient(180deg, #f0fdf4 0%, #d1fae5 100%);
+  box-shadow: 0 14px 0 #6ee7b7, 0 22px 36px rgba(16, 185, 129, 0.22);
+}
+.card-hangul:active, .card-hangul.is-pressed{
+  box-shadow: 0 6px 0 #6ee7b7, 0 10px 20px rgba(16, 185, 129, 0.2);
+}
+.card-hangul .card-badge{ background: #10b981; }
+.card-hangul .card-title{ color: #047857; }
+
+/* 카드 내부 요소 */
+.icon-circle{
+  width: clamp(96px, 18vh, 186px);
+  height: clamp(96px, 18vh, 186px);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 6px solid #ffffff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(3.4rem, 9.5vh, 6.2rem);
+  line-height: 1;
+  animation: iconBob 3.2s ease-in-out infinite;
+}
+.card-memory .icon-circle{ animation-delay: -0.8s; }
+.card-co .icon-circle{ animation-delay: -1.6s; }
+.card-hangul .icon-circle{ animation-delay: -2.4s; }
+@keyframes iconBob{
+  0%, 100%{ transform: translateY(0) scale(1); }
+  50%{ transform: translateY(-8px) scale(1.04); }
+}
+
+.card-title{
+  font-size: clamp(1.35rem, 2.2vw, 2.2rem);
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.2;
+  word-break: keep-all;
+}
+.card-desc{
+  font-size: clamp(0.88rem, 1.18vw, 1.15rem);
+  font-weight: 800;
+  color: var(--sub);
+  text-align: center;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.card-badge{
+  color: #ffffff;
+  font-size: clamp(0.95rem, 1.35vw, 1.3rem);
+  font-weight: 900;
+  padding: clamp(9px, 1.3vh, 13px) clamp(20px, 2.2vw, 34px);
+  border-radius: 999px;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.14);
+  margin-top: 4px;
+}
+
+/* 게임 실행 오버레이 (iframe) */
+.game-viewer{
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #ffffff;
+  display: none;
+}
+.game-viewer.open{
+  display: block;
+}
+.game-viewer iframe{
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+.btn-home{
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 210;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  background: rgba(255, 92, 147, 0.9);
+  color: #ffffff;
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  transition: transform 0.12s ease;
+}
+.btn-home:active{
+  transform: scale(0.9);
+}
+
+/* 세로 화면(모바일/세로 태블릿) 대응 */
+@media (max-aspect-ratio: 1/1){
+  .header{
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-fs{
+    position: static;
+    transform: none;
+  }
+  .btn-fs:active{
+    transform: translateY(2px);
+  }
+  .game-grid{
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .game-card{
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 12px 18px;
+    border-radius: 26px;
+    gap: 14px;
+  }
+  .icon-circle{
+    width: clamp(68px, 9.5vh, 96px);
+    height: clamp(68px, 9.5vh, 96px);
+    font-size: clamp(2.3rem, 5vh, 3.4rem);
+    flex-shrink: 0;
+  }
+  .card-text-wrap{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 1;
+  }
+  .card-title, .card-desc{
+    text-align: left;
+  }
+  .card-badge{
+    margin-top: 0;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-deco" aria-hidden="true">
+  <span class="deco-item">⭐</span>
+  <span class="deco-item">☁️</span>
+  <span class="deco-item">🎈</span>
+  <span class="deco-item">🌸</span>
+</div>
+
+<header class="header">
+  <div class="title-pill">
+    <h1>🌈 서율이의 반짝반짝 놀이터</h1>
+    <p>오늘은 어떤 게임을 해볼까?</p>
+  </div>
+  <button type="button" class="btn-fs" id="fsBtn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</header>
+
+<main class="game-grid">
+  <a href="find.html" class="game-card card-find" onclick="openGame(event, this)">
+    <div class="icon-circle">🔍</div>
+    <div class="card-text-wrap">
+      <div class="card-title">틀린 그림 찾기</div>
+      <div class="card-desc">두 그림에서 다른 곳을<br>쏙쏙 찾아보아요!</div>
+    </div>
+    <div class="card-badge">놀기 ▶</div>
+  </a>
+
+  <a href="memory.html" class="game-card card-memory" onclick="openGame(event, this)">
+    <div class="icon-circle">🃏</div>
+    <div class="card-text-wrap">
+      <div class="card-title">카드 짝 맞추기</div>
+      <div class="card-desc">뒤집힌 카드 중에서<br>같은 그림을 찾아요!</div>
+    </div>
+    <div class="card-badge">놀기 ▶</div>
+  </a>
+
+  <a href="co.html" class="game-card card-co" onclick="openGame(event, this)">
+    <div class="icon-circle">🤝</div>
+    <div class="card-text-wrap">
+      <div class="card-title">함께 짝꿍 맞추기</div>
+      <div class="card-desc">셋이서 힘을 합쳐<br>어울리는 짝꿍을 찾아요!</div>
+    </div>
+    <div class="card-badge">놀기 ▶</div>
+  </a>
+
+  <a href="hangul.html" class="game-card card-hangul" onclick="openGame(event, this)">
+    <div class="icon-circle">🚀</div>
+    <div class="card-text-wrap">
+      <div class="card-title">로켓 한글 쓰기</div>
+      <div class="card-desc">로켓과 붓으로<br>ㄱ부터 ㅎ까지 써보아요!</div>
+    </div>
+    <div class="card-badge">놀기 ▶</div>
+  </a>
+</main>
+
+<!-- 게임 실행 영역 (전체화면 유지용 iframe) -->
+<div class="game-viewer" id="gameViewer">
+  <button type="button" class="btn-home" title="놀이터로 돌아가기" onclick="closeGame()">🏠</button>
+  <iframe id="gameFrame" src="about:blank" allow="fullscreen; autoplay"></iframe>
+</div>
+
+<script>
+let audioCtx = null;
+function playPop() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    [[523.25, 0], [698.46, 0.06]].forEach(([freq, delay]) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + delay);
+      gain.gain.setValueAtTime(0.001, now + delay);
+      gain.gain.linearRampToValueAtTime(0.22, now + delay + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.14);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.16);
+    });
+  } catch (e) {}
+}
+
+const viewer = document.getElementById('gameViewer');
+const frame = document.getElementById('gameFrame');
+let isGameOpen = false;
+
+function openGame(e, el) {
+  e.preventDefault();
+  playPop();
+  el.classList.add('is-pressed');
+  const url = el.getAttribute('href');
+  setTimeout(() => {
+    el.classList.remove('is-pressed');
+    frame.src = url;
+    viewer.classList.add('open');
+    isGameOpen = true;
+    try { history.pushState({ game: url }, '', ''); } catch (err) {}
+  }, 140);
+}
+
+function closeGame(fromPopState) {
+  if (!isGameOpen) return;
+  if (!fromPopState) playPop();
+  viewer.classList.remove('open');
+  frame.src = 'about:blank';
+  isGameOpen = false;
+  if (!fromPopState) {
+    try {
+      if (history.state && history.state.game) history.back();
+    } catch (err) {}
+  }
+}
+
+window.addEventListener('popstate', () => {
+  if (isGameOpen) closeGame(true);
+});
+
+const fsEl = document.documentElement;
+const fsBtn = document.getElementById('fsBtn');
+const canFullscreen = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+if (!canFullscreen) fsBtn.style.display = 'none';
+
+function toggleFullscreen() {
+  playPop();
+  const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!isFs) (fsEl.requestFullscreen || fsEl.webkitRequestFullscreen).call(fsEl);
+  else (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+}
+function syncFs() {
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  fsBtn.textContent = isFs ? '⛶ 전체화면 끔' : '⛶ 전체화면';
+}
+document.addEventListener('fullscreenchange', syncFs);
+document.addEventListener('webkitfullscreenchange', syncFs);
+</script>
+</body>
+</html>

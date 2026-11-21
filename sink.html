@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>음성 구간 편집기 (VOICE_CLIPS)</title>
+<style>
+:root{
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --text: #1e293b;
+  --sub: #64748b;
+}
+*{ box-sizing: border-box; margin: 0; padding: 0; }
+body{
+  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-bottom: 60px;
+}
+
+/* 상단 고정 툴바 */
+.toolbar{
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+.file-label{
+  background: var(--primary);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.file-label input{ display: none; }
+.btn{
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.btn:hover{ background: #f1f5f9; }
+.btn-auto{
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #b45309;
+}
+.btn-auto:hover{ background: #fde68a; }
+.btn-copy{
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+  margin-left: auto;
+}
+.btn-copy:hover{ background: #059669; }
+.status{
+  font-size: 0.85rem;
+  color: var(--sub);
+  font-weight: 600;
+}
+.shortcut-bar{
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  color: #1e40af;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.shortcut-bar b{ color: #1d4ed8; }
+
+/* 메인 테이블 */
+.container{
+  max-width: 960px;
+  margin: 16px auto;
+  padding: 0 16px;
+}
+table{
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+th, td{
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 0.92rem;
+}
+th{
+  background: #f1f5f9;
+  color: var(--sub);
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+tr.group-row td{
+  background: #f8fafc;
+  font-weight: 900;
+  color: #db2777;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+tr.active-row{
+  background: #eff6ff;
+}
+tr.playing-row{
+  background: #ecfdf5;
+}
+.key-cell{
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: #475569;
+  width: 110px;
+}
+.text-cell{
+  font-weight: 600;
+}
+.time-input{
+  width: 88px;
+  padding: 6px 8px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: right;
+  outline: none;
+}
+.time-input:focus{
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+.play-btn{
+  border: none;
+  background: #3b82f6;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.play-btn:hover{ background: #2563eb; }
+.play-btn:active{ transform: scale(0.95); }
+
+.auto-opt{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--sub);
+}
+.auto-opt input{
+  width: 58px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  text-align: right;
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <label class="file-label">
+    📂 MP3 파일 선택
+    <input type="file" id="audioFile" accept="audio/*" />
+  </label>
+  <button type="button" class="btn btn-auto" id="autoBtn" onclick="autoDetectSilence()" disabled>⚡ 무음 자동 채우기</button>
+  <span class="auto-opt" title="이 시간(초) 이상 무음이면 다음 단어로 분리">
+    무음기준(초) <input type="text" id="minGapInput" value="0.22" />
+  </span>
+  <span class="status" id="statusText">MP3 파일을 먼저 선택해 주세요.</span>
+  <button type="button" class="btn btn-copy" onclick="copyCode()">📋 VOICE_CLIPS 코드 복사</button>
+</div>
+
+<div class="shortcut-bar">
+  <span><b>↑ / ↓</b> : 0.05초 증감</span>
+  <span><b>Shift + ↑ / ↓</b> : 0.20초 증감</span>
+  <span><b>Space</b> : 현재 줄 구간 재생</span>
+  <span><b>Enter</b> : 다음 칸 이동</span>
+</div>
+
+<div class="container">
+  <table>
+    <thead>
+      <tr>
+        <th>키(Key)</th>
+        <th>대사</th>
+        <th>시작 (초)</th>
+        <th>끝 (초)</th>
+        <th>재생</th>
+      </tr>
+    </thead>
+    <tbody id="clipTableBody"></tbody>
+  </table>
+</div>
+
+<script>
+const ITEMS = [
+  { group: '공통', key: 'phase2', text: '잘했어요. 이번에는 붓으로 칠해볼까요?' },
+
+  { group: 'ㄱ (기역)', key: 'ㄱ_intro', text: '기역을 써볼까요?' },
+  { key: 'ㄱ', text: '기역' }, { key: '기차', text: '기차' }, { key: '강아지', text: '강아지' }, { key: '곰', text: '곰' }, { key: '기린', text: '기린' },
+
+  { group: 'ㄴ (니은)', key: 'ㄴ_intro', text: '니은을 써볼까요?' },
+  { key: 'ㄴ', text: '니은' }, { key: '나비', text: '나비' }, { key: '나무', text: '나무' }, { key: '눈사람', text: '눈사람' }, { key: '노래', text: '노래' },
+
+  { group: 'ㄷ (디귿)', key: 'ㄷ_intro', text: '디귿을 써볼까요?' },
+  { key: 'ㄷ', text: '디귿' }, { key: '당근', text: '당근' }, { key: '돼지', text: '돼지' }, { key: '돌고래', text: '돌고래' }, { key: '도넛', text: '도넛' },
+
+  { group: 'ㄹ (리을)', key: 'ㄹ_intro', text: '리을을 써볼까요?' },
+  { key: 'ㄹ', text: '리을' }, { key: '로켓', text: '로켓' }, { key: '로봇', text: '로봇' }, { key: '라면', text: '라면' }, { key: '레몬', text: '레몬' },
+
+  { group: 'ㅁ (미음)', key: 'ㅁ_intro', text: '미음을 써볼까요?' },
+  { key: 'ㅁ', text: '미음' }, { key: '모자', text: '모자' }, { key: '문어', text: '문어' }, { key: '무지개', text: '무지개' }, { key: '말', text: '말' },
+
+  { group: 'ㅂ (비읍)', key: 'ㅂ_intro', text: '비읍을 써볼까요?' },
+  { key: 'ㅂ', text: '비읍' }, { key: '바나나', text: '바나나' }, { key: '비행기', text: '비행기' }, { key: '별', text: '별' }, { key: '배', text: '배' },
+
+  { group: 'ㅅ (시옷)', key: 'ㅅ_intro', text: '시옷을 써볼까요?' },
+  { key: 'ㅅ', text: '시옷' }, { key: '사과', text: '사과' }, { key: '사자', text: '사자' }, { key: '수박', text: '수박' }, { key: '소방차', text: '소방차' },
+
+  { group: 'ㅇ (이응)', key: 'ㅇ_intro', text: '이응을 써볼까요?' },
+  { key: 'ㅇ', text: '이응' }, { key: '오리', text: '오리' }, { key: '우산', text: '우산' }, { key: '원숭이', text: '원숭이' }, { key: '아이스크림', text: '아이스크림' },
+
+  { group: 'ㅈ (지읒)', key: 'ㅈ_intro', text: '지읒을 써볼까요?' },
+  { key: 'ㅈ', text: '지읒' }, { key: '자동차', text: '자동차' }, { key: '자전거', text: '자전거' }, { key: '쥐', text: '쥐' }, { key: '주스', text: '주스' },
+
+  { group: 'ㅊ (치읓)', key: 'ㅊ_intro', text: '치읓을 써볼까요?' },
+  { key: 'ㅊ', text: '치읓' }, { key: '치즈', text: '치즈' }, { key: '칫솔', text: '칫솔' }, { key: '축구공', text: '축구공' }, { key: '체리', text: '체리' },
+
+  { group: 'ㅋ (키읔)', key: 'ㅋ_intro', text: '키읔을 써볼까요?' },
+  { key: 'ㅋ', text: '키읔' }, { key: '코끼리', text: '코끼리' }, { key: '케이크', text: '케이크' }, { key: '쿠키', text: '쿠키' }, { key: '코알라', text: '코알라' },
+
+  { group: 'ㅌ (티읕)', key: 'ㅌ_intro', text: '티읕을 써볼까요?' },
+  { key: 'ㅌ', text: '티읕' }, { key: '토끼', text: '토끼' }, { key: '토마토', text: '토마토' }, { key: '트랙터', text: '트랙터' }, { key: '택시', text: '택시' },
+
+  { group: 'ㅍ (피읖)', key: 'ㅍ_intro', text: '피읖을 써볼까요?' },
+  { key: 'ㅍ', text: '피읖' }, { key: '포도', text: '포도' }, { key: '펭귄', text: '펭귄' }, { key: '피자', text: '피자' }, { key: '풍선', text: '풍선' },
+
+  { group: 'ㅎ (히읗)', key: 'ㅎ_intro', text: '히읗을 써볼까요?' },
+  { key: 'ㅎ', text: '히읗' }, { key: '호랑이', text: '호랑이' }, { key: '해바라기', text: '해바라기' }, { key: '하마', text: '하마' }, { key: '햄버거', text: '햄버거' }
+];
+
+const audio = new Audio();
+let audioArrayBuffer = null;
+let playRaf = null;
+let stopAt = 0;
+let playingRowEl = null;
+
+/* ---------- 테이블 생성 ---------- */
+const tbody = document.getElementById('clipTableBody');
+const allInputs = [];
+
+ITEMS.forEach((item, idx) => {
+  if (item.group) {
+    const gtr = document.createElement('tr');
+    gtr.className = 'group-row';
+    gtr.innerHTML = `<td colspan="5">${item.group}</td>`;
+    tbody.appendChild(gtr);
+  }
+
+  const tr = document.createElement('tr');
+  tr.dataset.idx = idx;
+  tr.innerHTML = `
+    <td class="key-cell">${item.key}</td>
+    <td class="text-cell">${item.text}</td>
+    <td><input type="text" inputmode="decimal" class="time-input start-input" value="0.00" /></td>
+    <td><input type="text" inputmode="decimal" class="time-input end-input" value="0.00" /></td>
+    <td><button type="button" class="play-btn">▶ 재생</button></td>
+  `;
+  tbody.appendChild(tr);
+
+  const startIn = tr.querySelector('.start-input');
+  const endIn = tr.querySelector('.end-input');
+  const playBtn = tr.querySelector('.play-btn');
+
+  allInputs.push(startIn, endIn);
+
+  [startIn, endIn].forEach((input) => {
+    input.addEventListener('focus', () => {
+      document.querySelectorAll('tr.active-row').forEach(r => r.classList.remove('active-row'));
+      tr.classList.add('active-row');
+      input.select();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const step = e.shiftKey ? 0.20 : 0.05;
+        const delta = e.key === 'ArrowUp' ? step : -step;
+        let val = parseFloat(input.value);
+        if (isNaN(val)) val = 0;
+        val = Math.max(0, Math.round((val + delta) * 100) / 100);
+        input.value = val.toFixed(2);
+      } else if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        playRow(idx);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const pos = allInputs.indexOf(input);
+        if (pos >= 0 && pos + 1 < allInputs.length) {
+          allInputs[pos + 1].focus();
+        }
+      }
+    });
+  });
+
+  playBtn.addEventListener('click', () => playRow(idx));
+});
+
+/* ---------- MP3 파일 로드 ---------- */
+document.getElementById('audioFile').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  audio.src = url;
+  audio.load();
+  audioArrayBuffer = await file.arrayBuffer();
+
+  audio.onloadedmetadata = () => {
+    document.getElementById('statusText').textContent =
+      `로드 완료: ${file.name} (총 ${audio.duration.toFixed(2)}초)`;
+    document.getElementById('autoBtn').disabled = false;
+  };
+});
+
+/* ---------- 구간 재생 ---------- */
+function stopAudio() {
+  if (playRaf) cancelAnimationFrame(playRaf);
+  playRaf = null;
+  audio.pause();
+  if (playingRowEl) {
+    playingRowEl.classList.remove('playing-row');
+    playingRowEl = null;
+  }
+}
+
+function playRow(idx) {
+  if (!audio.src) {
+    alert('먼저 MP3 파일을 선택해 주세요.');
+    return;
+  }
+  const tr = tbody.querySelector(`tr[data-idx="${idx}"]`);
+  const s = parseFloat(tr.querySelector('.start-input').value) || 0;
+  const e = parseFloat(tr.querySelector('.end-input').value) || 0;
+
+  stopAudio();
+  if (e <= s) return;
+
+  stopAt = e;
+  playingRowEl = tr;
+  tr.classList.add('playing-row');
+
+  audio.currentTime = s;
+  audio.play().then(() => {
+    const check = () => {
+      if (audio.paused) return;
+      if (audio.currentTime >= stopAt) {
+        stopAudio();
+        return;
+      }
+      playRaf = requestAnimationFrame(check);
+    };
+    playRaf = requestAnimationFrame(check);
+  }).catch(() => {});
+}
+
+/* ---------- 무음 구간 자동 감지 ---------- */
+async function autoDetectSilence() {
+  if (!audioArrayBuffer) return;
+  const status = document.getElementById('statusText');
+  status.textContent = '파형 분석 중...';
+
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await ctx.decodeAudioData(audioArrayBuffer.slice(0));
+    const ch = decoded.getChannelData(0);
+    const sr = decoded.sampleRate;
+
+    const winSec = 0.01; // 10ms 단위
+    const winSamples = Math.floor(sr * winSec);
+    const rmsThreshold = 0.012;
+    const minGapSec = parseFloat(document.getElementById('minGapInput').value) || 0.22;
+    const minSpeechSec = 0.12;
+
+    const active = [];
+    for (let i = 0; i < ch.length; i += winSamples) {
+      let sum = 0;
+      const end = Math.min(ch.length, i + winSamples);
+      for (let j = i; j < end; j++) sum += ch[j] * ch[j];
+      const rms = Math.sqrt(sum / (end - i));
+      active.push(rms > rmsThreshold);
+    }
+
+    // 말소리 구간 추출
+    const rawSegs = [];
+    let inSeg = false, segStart = 0;
+    for (let i = 0; i < active.length; i++) {
+      if (active[i] && !inSeg) {
+        inSeg = true;
+        segStart = i * winSec;
+      } else if (!active[i] && inSeg) {
+        inSeg = false;
+        rawSegs.push([segStart, i * winSec]);
+      }
+    }
+    if (inSeg) rawSegs.push([segStart, decoded.duration]);
+
+    // 짧은 무음(단어 내부 끊김) 병합
+    const merged = [];
+    for (const seg of rawSegs) {
+      if (merged.length > 0 && seg[0] - merged[merged.length - 1][1] < minGapSec) {
+        merged[merged.length - 1][1] = seg[1];
+      } else {
+        merged.push(seg);
+      }
+    }
+
+    // 너무 짧은 잡음 제거 + 앞뒤 0.04초 여유
+    const segments = merged
+      .filter(s => (s[1] - s[0]) >= minSpeechSec)
+      .map(s => [
+        Math.max(0, Math.round((s[0] - 0.04) * 100) / 100),
+        Math.min(decoded.duration, Math.round((s[1] + 0.04) * 100) / 100)
+      ]);
+
+    // 첫 문장("잘했어요. 이번에는 붓으로 칠해볼까요?")이 2개로 쪼개졌으면 자동 합치기
+    if (segments.length === ITEMS.length + 1) {
+      segments[0][1] = segments[1][1];
+      segments.splice(1, 1);
+    }
+
+    ITEMS.forEach((_, idx) => {
+      const tr = tbody.querySelector(`tr[data-idx="${idx}"]`);
+      if (segments[idx]) {
+        tr.querySelector('.start-input').value = segments[idx][0].toFixed(2);
+        tr.querySelector('.end-input').value = segments[idx][1].toFixed(2);
+      }
+    });
+
+    status.textContent = `자동 감지 완료: ${segments.length}개 구간 발견 (필요 개수: ${ITEMS.length}개)`;
+    ctx.close();
+  } catch (err) {
+    status.textContent = '파형 분석 실패: 수동으로 입력해 주세요.';
+  }
+}
+
+/* ---------- VOICE_CLIPS 코드 복사 ---------- */
+function copyCode() {
+  const lines = ['const VOICE_CLIPS = {'];
+  ITEMS.forEach((item, idx) => {
+    const tr = tbody.querySelector(`tr[data-idx="${idx}"]`);
+    const s = (parseFloat(tr.querySelector('.start-input').value) || 0).toFixed(2);
+    const e = (parseFloat(tr.querySelector('.end-input').value) || 0).toFixed(2);
+    const comma = idx < ITEMS.length - 1 ? ',' : '';
+    const keyStr = item.key === 'phase2' ? 'phase2' : `'${item.key}'`;
+    lines.push(`  ${keyStr}: [${s}, ${e}]${comma}`);
+  });
+  lines.push('};');
+
+  const code = lines.join('\n');
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = '✅ 복사 완료!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  }).catch(() => {
+    prompt('아래 코드를 복사하세요:', code);
+  });
+}
+</script>
+</body>
+</html>

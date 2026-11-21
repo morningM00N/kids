@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>서율·유민·하린 짝꿍 맞추기! 🌈</title>
+  <title>짝꿍 맞추기! 🌈</title>
   <style>
     /* =========================================================================
-       1. 기본 리셋 및 27인치 태블릿 터치 최적화 (외부 리소스 0%)
+    1. 기본 리셋 및 27인치 태블릿 터치 최적화 (외부 리소스 0%)
     ========================================================================= */
     * {
       box-sizing: border-box;
@@ -15,6 +15,11 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
+    }
+
+    input {
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     html, body {
@@ -29,7 +34,7 @@
     }
 
     /* =========================================================================
-       2. 상단 중앙 슬림 플로팅 유틸리티 바 (HUD)
+    2. 상단 중앙 슬림 플로팅 유틸리티 바 (HUD)
     ========================================================================= */
     .floating-hud {
       position: fixed;
@@ -132,7 +137,7 @@
     }
 
     /* =========================================================================
-       3. 전체화면 100vw x 100vh 가로 3분할 보드
+    3. 전체화면 100vw x 100vh 가로 3분할 보드
     ========================================================================= */
     .board {
       display: grid;
@@ -151,7 +156,6 @@
       transition: filter 0.35s ease, opacity 0.35s ease;
     }
 
-    /* 3개 구역 파스텔 배경 + 깔끔한 구분선 */
     .zone[data-zone="0"] {
       background: linear-gradient(180deg, #FFF0F5 0%, #FFE4EE 100%);
       border-right: 5px dashed rgba(255, 255, 255, 0.95);
@@ -166,7 +170,6 @@
       background: linear-gradient(180deg, #EDF6FF 0%, #D9EEFF 100%);
     }
 
-    /* 비활성 영역: 확실한 반투명 처리 & 클릭 완전 차단 */
     .zone.is-waiting {
       pointer-events: none;
       opacity: 0.45;
@@ -179,7 +182,6 @@
       filter: saturate(0.8);
     }
 
-    /* 활성 영역: 선명하고 밝은 강조 테두리 */
     .zone.is-active {
       pointer-events: auto;
       opacity: 1;
@@ -209,7 +211,7 @@
     }
 
     /* =========================================================================
-       4. 각 영역 상단 타겟 팝업 배너
+    4. 각 영역 상단 타겟 팝업 배너
     ========================================================================= */
     .zone-top-banner {
       position: absolute;
@@ -301,7 +303,7 @@
     }
 
     /* =========================================================================
-       5. 각 영역 하단 어린이 얼굴 프로필 & 이름표 (서율·유민·하린)
+    5. 각 영역 하단 프로필 & 이름표 & 차례 표시
     ========================================================================= */
     .zone-player-dock {
       position: absolute;
@@ -313,7 +315,7 @@
       align-items: center;
       justify-content: center;
       gap: clamp(10px, 1.2vw, 16px);
-      padding: 8px 18px 8px 10px;
+      padding: 8px 20px 8px 10px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.92);
       border: 4px solid #FFFFFF;
@@ -370,7 +372,6 @@
       position: absolute;
       inset: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: var(--player-color, #FF8FAB);
@@ -380,15 +381,8 @@
     }
 
     .player-avatar-fallback .fb-emoji {
-      font-size: clamp(2rem, 4.2vh, 2.6rem);
+      font-size: clamp(2.2rem, 4.6vh, 3rem);
       filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.15));
-    }
-
-    .player-avatar-fallback .fb-initial {
-      font-size: clamp(0.85rem, 1.3vh, 1.05rem);
-      font-weight: 900;
-      margin-top: 2px;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
     .player-meta {
@@ -400,12 +394,6 @@
       min-width: 0;
     }
 
-    .player-name-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
     .player-name-pill {
       display: inline-flex;
       align-items: center;
@@ -414,7 +402,7 @@
       background: var(--player-color, #FF8FAB);
       color: #FFFFFF;
       font-weight: 900;
-      font-size: clamp(1.1rem, 1.75vw, 1.65rem);
+      font-size: clamp(1.05rem, 1.65vw, 1.55rem);
       line-height: 1.1;
       box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
       white-space: nowrap;
@@ -422,7 +410,7 @@
 
     .player-turn-badge {
       font-weight: 900;
-      font-size: clamp(0.86rem, 1.25vw, 1.22rem);
+      font-size: clamp(0.92rem, 1.35vw, 1.3rem);
       color: #64748B;
       white-space: nowrap;
       padding-left: 2px;
@@ -446,7 +434,7 @@
     }
 
     /* =========================================================================
-       6. 3D 캔디 스티커 버블 버튼 (자유 배치 & 둥실둥실 애니메이션)
+    6. 3D 캔디 스티커 버블 버튼
     ========================================================================= */
     .bubble-btn {
       position: absolute;
@@ -547,7 +535,7 @@
     }
 
     /* =========================================================================
-       7. 자리 배치 선택 모달 (👧 자리)
+    7. 프로필(사진·이름) 설정 모달
     ========================================================================= */
     .seat-modal-overlay {
       position: fixed;
@@ -575,7 +563,7 @@
       border: 6px solid #F9A8D4;
       border-radius: 36px;
       padding: clamp(20px, 3vh, 34px) clamp(20px, 3vw, 40px);
-      width: min(860px, 94vw);
+      width: min(880px, 94vw);
       max-height: 92vh;
       overflow-y: auto;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
@@ -615,7 +603,7 @@
 
     .seat-slot-card {
       border-radius: 28px;
-      padding: 16px 12px;
+      padding: 18px 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -639,54 +627,84 @@
 
     .seat-preview-avatar {
       position: relative;
-      width: 84px;
-      height: 84px;
+      width: 96px;
+      height: 96px;
       border-radius: 50%;
-      border: 4px solid #FFFFFF;
+      border: 5px solid #FFFFFF;
       box-shadow: 0 5px 12px rgba(0, 0, 0, 0.14);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
     }
 
-    .seat-preview-name {
-      font-size: clamp(1.2rem, 1.8vw, 1.6rem);
-      font-weight: 900;
+    .profile-name-input {
+      width: 100%;
+      max-width: 180px;
+      padding: 9px 14px;
+      border-radius: 16px;
+      border: 3px solid #FFFFFF;
+      background: #FFFFFF;
       color: #1E293B;
+      font-family: inherit;
+      font-size: clamp(1rem, 1.4vw, 1.25rem);
+      font-weight: 900;
+      text-align: center;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+      outline: none;
+    }
+
+    .profile-name-input:focus {
+      border-color: #F472B6;
+    }
+
+    .profile-name-input::placeholder {
+      color: #94A3B8;
+      font-weight: 700;
     }
 
     .seat-pick-row {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       width: 100%;
       justify-content: center;
       flex-wrap: wrap;
     }
 
-    .seat-pick-btn {
+    .photo-upload-btn {
       flex: 1;
-      min-width: 60px;
-      padding: 9px 6px;
+      min-width: 100px;
+      padding: 10px 12px;
       border-radius: 16px;
-      border: 3px solid #E2E8F0;
-      background: #FFFFFF;
-      color: #475569;
+      border: none;
+      color: #FFFFFF;
       font-family: inherit;
       font-weight: 900;
-      font-size: clamp(0.9rem, 1.25vw, 1.12rem);
+      font-size: clamp(0.9rem, 1.2vw, 1.08rem);
       cursor: pointer;
-      transition: transform 0.12s, background 0.15s, border-color 0.15s;
-    }
-
-    .seat-pick-btn:active {
-      transform: scale(0.94);
-    }
-
-    .seat-pick-btn.is-selected {
-      color: #FFFFFF;
-      border-color: transparent;
       box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+      transition: transform 0.12s;
+    }
+
+    .photo-upload-btn:active {
+      transform: scale(0.95);
+    }
+
+    .photo-reset-btn {
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 2px solid #E2E8F0;
+      background: #FFFFFF;
+      color: #64748B;
+      font-family: inherit;
+      font-weight: 800;
+      font-size: clamp(0.85rem, 1.1vw, 1rem);
+      cursor: pointer;
+    }
+
+    .photo-reset-btn:active {
+      transform: scale(0.95);
     }
 
     .seat-done-btn {
@@ -708,14 +726,14 @@
     }
 
     /* =========================================================================
-       8. 친근한 오답 피드백 말풍선 & 축하 오버레이
+    8. 친근한 오답 피드백 말풍선 & 축하 오버레이
     ========================================================================= */
     .feedback-toast {
       position: fixed;
       top: clamp(64px, 8.2vh, 86px);
       left: 50%;
       transform: translateX(-50%) translateY(-16px);
-      z-index: 80;
+      z-index: 160;
       background: #FFFFFF;
       color: #EA580C;
       border: 4px solid #FDBA74;
@@ -785,11 +803,60 @@
       transform: scale(1);
     }
 
+    .cel-showcase-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(12px, 2vw, 24px);
+    }
+
     .cel-showcase {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: clamp(8px, 1.8vw, 22px);
+    }
+
+    /* 문제 피드백 버튼 (👍 / 👎) */
+    .cel-feedback-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-left: clamp(8px, 1.2vw, 16px);
+      border-left: 3px dashed #FDE68A;
+    }
+
+    .fb-rate-btn {
+      width: clamp(48px, 6.2vh, 62px);
+      height: clamp(48px, 6.2vh, 62px);
+      border-radius: 50%;
+      border: 3px solid #E2E8F0;
+      background: #F8FAFC;
+      font-size: clamp(1.4rem, 2.8vh, 1.9rem);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 0 #CBD5E1;
+      transition: transform 0.12s, background 0.15s, border-color 0.15s;
+    }
+
+    .fb-rate-btn:active {
+      transform: translateY(3px) scale(0.94);
+    }
+
+    .fb-rate-btn.is-up {
+      background: #DCFCE7;
+      border-color: #22C55E;
+      box-shadow: 0 4px 0 #16A34A;
+      transform: scale(1.1);
+    }
+
+    .fb-rate-btn.is-down {
+      background: #FFE4E6;
+      border-color: #F43F5E;
+      box-shadow: 0 4px 0 #E11D48;
+      transform: scale(1.1);
     }
 
     .cel-plus {
@@ -857,12 +924,11 @@
       border-radius: 999px;
     }
 
-    /* 축하 카드 하단 서율·유민·하린 미니 응원 프로필 */
     .cel-cheer-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: clamp(14px, 2.5vw, 32px);
+      gap: clamp(16px, 2.8vw, 36px);
       margin-top: 2px;
     }
 
@@ -879,8 +945,8 @@
 
     .cel-cheer-avatar {
       position: relative;
-      width: clamp(56px, 7.6vh, 74px);
-      height: clamp(56px, 7.6vh, 74px);
+      width: clamp(60px, 8vh, 80px);
+      height: clamp(60px, 8vh, 80px);
       border-radius: 50%;
       border: 4px solid #FFFFFF;
       box-shadow: 0 5px 12px rgba(0, 0, 0, 0.16);
@@ -891,7 +957,7 @@
     }
 
     .cel-cheer-avatar .fb-emoji {
-      font-size: clamp(1.6rem, 3.2vh, 2.1rem);
+      font-size: clamp(1.8rem, 3.6vh, 2.3rem);
     }
 
     .cel-cheer-name {
@@ -929,7 +995,7 @@
     }
 
     /* =========================================================================
-       9. 키프레임 애니메이션
+    9. 키프레임 애니메이션
     ========================================================================= */
     @keyframes activeGlow {
       0%, 100% { opacity: 1; }
@@ -1002,10 +1068,11 @@
     <div class="hud-pill hud-stars" id="hudStars">⭐ <span id="starCountNum">0</span></div>
     <div class="hud-divider"></div>
     <button type="button" id="themeBtn" class="hud-btn hud-btn-theme" title="테마 바꾸기">🎲 모두 섞기</button>
-    <button type="button" id="seatBtn" class="hud-btn hud-btn-seat" title="서율·유민·하린 자리 바꾸기">👧 자리</button>
+    <button type="button" id="seatBtn" class="hud-btn hud-btn-seat" title="사진·이름 설정">📷 프로필</button>
     <div class="hud-divider"></div>
     <button type="button" id="soundBtn" class="hud-btn" title="효과음 켜기/끄기">🔊</button>
     <button type="button" id="voiceBtn" class="hud-btn" title="목소리 안내 켜기/끄기">🗣️</button>
+    <button type="button" id="exportBtn" class="hud-btn" title="피드백 내보내기">📋</button>
     <button type="button" id="fullscreenBtn" class="hud-btn" title="전체화면 켜기/끄기">⛶</button>
   </header>
 
@@ -1031,38 +1098,47 @@
   <!-- 친근한 오답 안내 말풍선 -->
   <div id="feedbackToast" class="feedback-toast">어라? 다시 찾아볼까? 😊</div>
 
-  <!-- 자리 배치 선택 모달 -->
+  <!-- 프로필(사진·이름) 설정 모달 -->
   <div id="seatModalOverlay" class="seat-modal-overlay">
     <div class="seat-modal-card" id="seatModalCard">
-      <div class="seat-modal-title">👧 서율 · 유민 · 하린 자리 정하기</div>
-      <div class="seat-modal-sub">각 자리에 설 친구 이름을 누르면 자동으로 자리가 바뀌어요!</div>
+      <div class="seat-modal-title">📷 자리별 사진 · 이름 정하기</div>
+      <div class="seat-modal-sub">사진을 고르고 이름을 적으면 기기에 자동 저장돼요!</div>
       <div class="seat-grid" id="seatGrid"></div>
       <button type="button" id="seatDoneBtn" class="seat-done-btn">완료! 놀자 🎉</button>
     </div>
   </div>
 
+  <!-- 숨겨진 파일 입력 (갤러리 사진 선택용) -->
+  <input type="file" id="photoFileInput" accept="image/*" style="display:none;" />
+
   <!-- 성공 축하 오버레이 -->
   <div id="celebrationOverlay" class="celebration-overlay">
     <canvas id="confettiCanvas"></canvas>
     <div class="celebration-card" id="celebrationCard">
-      <div class="cel-showcase">
-        <div class="cel-trio-item">
-          <div class="cel-trio-visual" id="celVisual0">🐰</div>
-          <div class="cel-trio-label" id="celLabel0">토끼</div>
+      <div class="cel-showcase-wrap">
+        <div class="cel-showcase">
+          <div class="cel-trio-item">
+            <div class="cel-trio-visual" id="celVisual0">🐰</div>
+            <div class="cel-trio-label" id="celLabel0">토끼</div>
+          </div>
+          <div class="cel-plus">+</div>
+          <div class="cel-trio-item">
+            <div class="cel-trio-visual" id="celVisual1">🥕</div>
+            <div class="cel-trio-label" id="celLabel1">당근</div>
+          </div>
+          <div class="cel-plus">+</div>
+          <div class="cel-trio-item">
+            <div class="cel-trio-visual" id="celVisual2">🐾</div>
+            <div class="cel-trio-label" id="celLabel2">동물</div>
+          </div>
         </div>
-        <div class="cel-plus">+</div>
-        <div class="cel-trio-item">
-          <div class="cel-trio-visual" id="celVisual1">🥕</div>
-          <div class="cel-trio-label" id="celLabel1">당근</div>
-        </div>
-        <div class="cel-plus">+</div>
-        <div class="cel-trio-item">
-          <div class="cel-trio-visual" id="celVisual2">🐾</div>
-          <div class="cel-trio-label" id="celLabel2">동물</div>
+        <div class="cel-feedback-col">
+          <button type="button" id="fbUpBtn" class="fb-rate-btn" title="좋은 문제">👍</button>
+          <button type="button" id="fbDownBtn" class="fb-rate-btn" title="별로인 문제">👎</button>
         </div>
       </div>
       <div class="cel-title" id="celTitle">우와! 토끼, 당근, 동물! 🎉</div>
-      <div class="cel-sub" id="celSub">서율, 유민, 하린! 우리 셋이 최고야! ⭐</div>
+      <div class="cel-sub" id="celSub">우리 셋이 최고야! ⭐</div>
       <div class="cel-cheer-row" id="celCheerRow"></div>
       <button type="button" id="nextRoundBtn" class="next-btn">다음 판 놀기! 🎉</button>
       <div class="cel-tap-hint" id="celTapHint">신나게 축하해요! 🎉</div>
@@ -1074,25 +1150,70 @@
       'use strict';
 
       /* =========================================================================
-         1. 세 아이 프로필(서율·유민·하린) & 한국어 조사 자동 처리 유틸
+      1. 3개 자리 프로필 & 로컬 사진/이름/피드백 저장 (localStorage)
       ========================================================================= */
       const PLAYERS = [
-        { id: 'seoyul', name: '서율', img: 'img/1.jpg', fallbackEmoji: '🐰', badgeColor: '#FF8FAB', glow: 'rgba(255, 143, 171, 0.58)' },
-        { id: 'yumin',  name: '유민', img: 'img/2.jpg', fallbackEmoji: '🐻', badgeColor: '#FFB703', glow: 'rgba(255, 183, 3, 0.58)' },
-        { id: 'harin',  name: '하린', img: 'img/3.jpg', fallbackEmoji: '🐱', badgeColor: '#4EA8DE', glow: 'rgba(78, 168, 222, 0.58)' }
+        { id: 'p0', fallbackEmoji: '🐰', badgeColor: '#FF8FAB', glow: 'rgba(255, 143, 171, 0.58)' },
+        { id: 'p1', fallbackEmoji: '🐻', badgeColor: '#FFB703', glow: 'rgba(255, 183, 3, 0.58)' },
+        { id: 'p2', fallbackEmoji: '🐱', badgeColor: '#4EA8DE', glow: 'rgba(78, 168, 222, 0.58)' }
       ];
 
       const SEAT_LABELS = ['왼쪽 자리', '가운데 자리', '오른쪽 자리'];
-      const STORAGE_KEY_SEATS = 'coop_matching_seats_v1';
+      const STORAGE_KEY_PHOTOS   = 'coop_matching_photos_v1';
+      const STORAGE_KEY_NAMES    = 'coop_matching_names_v1';
+      const STORAGE_KEY_FEEDBACK = 'coop_matching_feedback_v1';
 
-      function getPlayerById(pid) {
-        for (let i = 0; i < PLAYERS.length; i++) {
-          if (PLAYERS[i].id === pid) return PLAYERS[i];
-        }
-        return PLAYERS[0];
+      function loadJsonStorage(key) {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') return parsed;
+          }
+        } catch (e) {}
+        return {};
       }
 
-      // 한글 받침 여부 판별 (서율/유민/하린 모두 받침 있음 -> 서율아, 서율이가 등 자연스럽게 처리)
+      function saveJsonStorage(key, obj) {
+        try {
+          window.localStorage.setItem(key, JSON.stringify(obj));
+        } catch (e) {
+          if (key === STORAGE_KEY_PHOTOS) {
+            alert('저장 공간이 부족해 사진을 저장하지 못했어요.');
+          }
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function resizeImageToDataUrl(file, maxSize, callback) {
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          const img = new Image();
+          img.onload = function () {
+            const side = Math.min(img.width, img.height);
+            const sx = (img.width - side) / 2;
+            const sy = (img.height - side) / 2;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = maxSize;
+            canvas.height = maxSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, sx, sy, side, side, 0, 0, maxSize, maxSize);
+            callback(canvas.toDataURL('image/jpeg', 0.82));
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // 한글 받침 여부 판별
       function hasBatchim(word) {
         if (!word) return false;
         const code = word.charCodeAt(word.length - 1);
@@ -1101,7 +1222,9 @@
       }
 
       function callKid(name) {
-        return name + (hasBatchim(name) ? '아' : '야');
+        const n = (name || '').trim();
+        if (!n) return '';
+        return n + (hasBatchim(n) ? '아' : '야');
       }
 
       function particleWa(word) {
@@ -1116,49 +1239,20 @@
         return word + (hasBatchim(word) ? '이' : '가');
       }
 
-      // 사진 로드 실패 시 깨진 아이콘 없이 귀여운 아바타로 자동 대체하는 HTML 생성
-      function buildAvatarHtml(player, showInitial) {
-        const initialHtml = showInitial ? '<span class="fb-initial">' + player.name.charAt(0) + '</span>' : '';
+      function buildAvatarHtml(player, photoData) {
+        const imgHtml = photoData
+          ? '<img class="player-avatar-img" src="' + photoData + '" alt="" />'
+          : '';
         return (
           '<div class="player-avatar-fallback" style="background:' + player.badgeColor + ';">' +
             '<span class="fb-emoji">' + player.fallbackEmoji + '</span>' +
-            initialHtml +
           '</div>' +
-          '<img class="player-avatar-img" src="' + player.img + '" alt="' + player.name + '" onerror="this.style.display=\'none\';" />'
+          imgHtml
         );
       }
 
-      function loadSavedSeats() {
-        const defaults = ['seoyul', 'yumin', 'harin'];
-        try {
-          const raw = window.localStorage.getItem(STORAGE_KEY_SEATS);
-          if (!raw) return defaults;
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length === 3) {
-            const validIds = ['seoyul', 'yumin', 'harin'];
-            const seen = {};
-            let ok = true;
-            for (let i = 0; i < 3; i++) {
-              if (validIds.indexOf(parsed[i]) === -1 || seen[parsed[i]]) {
-                ok = false;
-                break;
-              }
-              seen[parsed[i]] = true;
-            }
-            if (ok) return parsed;
-          }
-        } catch (e) {}
-        return defaults;
-      }
-
-      function saveSeats(seats) {
-        try {
-          window.localStorage.setItem(STORAGE_KEY_SEATS, JSON.stringify(seats));
-        } catch (e) {}
-      }
-
       /* =========================================================================
-         2. 귀여운 인라인 SVG 에셋 (물감 방울 색깔 9종 & 중립 크림색 도형 6종)
+      2. 귀여운 인라인 SVG 에셋 (물감 방울 색깔 9종 & 중립 크림색 도형 6종)
       ========================================================================= */
       function kawaiiFace(cx, cy, scale, eyeColor) {
         const s = scale || 1;
@@ -1246,7 +1340,7 @@
       }
 
       /* =========================================================================
-         3. 5가지 연관 짝꿍 테마 데이터 (100% 1:1:1 유일 매핑 보장)
+      3. 5가지 연관 짝꿍 테마 데이터
       ========================================================================= */
       const THEME_MODES = [
         { id: 'mixed',      label: '🎲 모두 섞기' },
@@ -1259,7 +1353,6 @@
 
       const PLAYABLE_THEMES = ['category', 'animal', 'job', 'life', 'colorShape'];
 
-      // [테마 1] 🧩 종류·짝꿍 (매 판 서로 다른 4개 종류에서 1개씩 추출)
       const CATEGORY_GROUPS = [
         {
           cat: { emoji: '🐾', name: '동물' },
@@ -1326,7 +1419,6 @@
         }
       ];
 
-      // [테마 2] 🐾 동물 짝꿍 (12세트)
       const ANIMAL_SETS = [
         { id: 'an_monkey',  a: { emoji: '🐵', name: '원숭이' }, b: { emoji: '🍌', name: '바나나' }, c: { emoji: '🌴', name: '정글' } },
         { id: 'an_penguin', a: { emoji: '🐧', name: '펭귄' },   b: { emoji: '🐟', name: '물고기' }, c: { emoji: '❄️', name: '얼음' } },
@@ -1342,7 +1434,6 @@
         { id: 'an_cow',     a: { emoji: '🐄', name: '젖소' },   b: { emoji: '🥛', name: '우유' },   c: { emoji: '🚜', name: '농장' } }
       ];
 
-      // [테마 3] 🚒 직업과 도구 (10세트)
       const JOB_SETS = [
         { id: 'jb_fire',    a: { emoji: '👨‍🚒', name: '소방관' }, b: { emoji: '🧯', name: '소화기' },   c: { emoji: '🚒', name: '소방차' } },
         { id: 'jb_police',  a: { emoji: '👮', name: '경찰관' }, b: { emoji: '🚨', name: '경광등' },   c: { emoji: '🚓', name: '경찰차' } },
@@ -1356,7 +1447,6 @@
         { id: 'jb_teacher', a: { emoji: '👩‍🏫', name: '선생님' }, b: { emoji: '🖍️', name: '크레용' },   c: { emoji: '🏫', name: '유치원' } }
       ];
 
-      // [테마 4] 🏠 생활·계절 (10세트)
       const LIFE_SETS = [
         { id: 'lf_night',  a: { emoji: '🌙', name: '밤' },     b: { emoji: '⭐', name: '별' },         c: { emoji: '🛏️', name: '잠자기' } },
         { id: 'lf_summer', a: { emoji: '☀️', name: '여름' },   b: { emoji: '🍦', name: '아이스크림' }, c: { emoji: '🏖️', name: '바다' } },
@@ -1370,7 +1460,6 @@
         { id: 'lf_camp',   a: { emoji: '🏕️', name: '캠핑' },   b: { emoji: '⛺', name: '텐트' },       c: { emoji: '🔥', name: '모닥불' } }
       ];
 
-      // [테마 5] 🎨 색깔·모양 (24종 구체적 사물 -> 물감 방울 SVG -> 중립 크림색 도형 SVG)
       const COLOR_SHAPE_POOL = [
         { id: 'cs_apple',    name: '사과',     emoji: '🍎', color: 'red',    shape: 'circle' },
         { id: 'cs_tomato',   name: '토마토',   emoji: '🍅', color: 'red',    shape: 'circle' },
@@ -1399,63 +1488,62 @@
       ];
 
       const COLOR_SHAPE_FALLBACK = [
-        COLOR_SHAPE_POOL[0],  // 사과 (red, circle)
-        COLOR_SHAPE_POOL[3],  // 치즈 (yellow, triangle)
-        COLOR_SHAPE_POOL[12], // 초콜릿 (brown, square)
-        COLOR_SHAPE_POOL[9]   // 당근 (orange, long)
+        COLOR_SHAPE_POOL[0],
+        COLOR_SHAPE_POOL[3],
+        COLOR_SHAPE_POOL[12],
+        COLOR_SHAPE_POOL[9]
       ];
 
-      // 테마별 개인화 질문 생성기
+      function withKidPrefix(name, sentence) {
+        const called = callKid(name);
+        return called ? (called + '! ' + sentence) : sentence;
+      }
+
       const THEME_META = {
         category: {
           headers: ['🌟 주인공 골라줘!', '🤝 어울리는 짝꿍은?', '🧩 어떤 종류일까?'],
           prompts: [
-            function (kid) { return callKid(kid) + '! 마음에 드는 걸 하나 골라줘!'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 짝꿍은?'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 어떤 종류일까?'; }
-          ],
-          shortAsk: ['', '어울리는 짝꿍은?', '어떤 종류일까?']
+            function (kid) { return withKidPrefix(kid, '마음에 드는 걸 하나 골라줘!'); },
+            function (kid, item) { return withKidPrefix(kid, particleWa(item) + ' 어울리는 짝꿍은?'); },
+            function (kid, item) { return withKidPrefix(kid, particleEun(item) + ' 어떤 종류일까?'); }
+          ]
         },
         animal: {
           headers: ['🐾 동물 친구 골라줘!', '🍽️ 좋아하는 먹이는?', '🏡 어디에 살까·짝꿍은?'],
           prompts: [
-            function (kid) { return callKid(kid) + '! 동물 친구를 하나 골라줘!'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleIga(item) + ' 좋아하는 먹이는?'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 어디에 살까?'; }
-          ],
-          shortAsk: ['', '좋아하는 먹이는?', '어디에 살까? 짝꿍은?']
+            function (kid) { return withKidPrefix(kid, '동물 친구를 하나 골라줘!'); },
+            function (kid, item) { return withKidPrefix(kid, particleIga(item) + ' 좋아하는 먹이는?'); },
+            function (kid, item) { return withKidPrefix(kid, particleEun(item) + ' 어디에 살까?'); }
+          ]
         },
         job: {
           headers: ['🧑‍🤝‍🧑 누구를 고를까?', '🧰 무엇을 쓸까?', '✨ 어울리는 짝꿍은?'],
           prompts: [
-            function (kid) { return callKid(kid) + '! 누구를 골라볼까?'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 무엇을 쓸까?'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 짝꿍은?'; }
-          ],
-          shortAsk: ['', '무엇을 쓸까?', '어울리는 짝꿍은?']
+            function (kid) { return withKidPrefix(kid, '누구를 골라볼까?'); },
+            function (kid, item) { return withKidPrefix(kid, particleEun(item) + ' 무엇을 쓸까?'); },
+            function (kid, item) { return withKidPrefix(kid, particleWa(item) + ' 어울리는 짝꿍은?'); }
+          ]
         },
         life: {
           headers: ['🌈 하나를 골라줘!', '🔍 어울리는 짝꿍은?', '✨ 또 다른 짝꿍은?'],
           prompts: [
-            function (kid) { return callKid(kid) + '! 마음에 드는 걸 하나 골라줘!'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 짝꿍은?'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleWa(item) + ' 어울리는 또 다른 짝꿍은?'; }
-          ],
-          shortAsk: ['', '어울리는 짝꿍을 찾아줘!', '마지막 짝꿍을 찾아줘!']
+            function (kid) { return withKidPrefix(kid, '마음에 드는 걸 하나 골라줘!'); },
+            function (kid, item) { return withKidPrefix(kid, particleWa(item) + ' 어울리는 짝꿍은?'); },
+            function (kid, item) { return withKidPrefix(kid, particleWa(item) + ' 어울리는 또 다른 짝꿍은?'); }
+          ]
         },
         colorShape: {
           headers: ['🍎 사물 골라줘!', '🎨 무슨 색깔일까?', '🔷 무슨 모양일까?'],
           prompts: [
-            function (kid) { return callKid(kid) + '! 마음에 드는 걸 하나 골라줘!'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 무슨 색깔일까?'; },
-            function (kid, item) { return callKid(kid) + '! ' + particleEun(item) + ' 무슨 모양일까?'; }
-          ],
-          shortAsk: ['', '무슨 색깔일까?', '무슨 모양일까?']
+            function (kid) { return withKidPrefix(kid, '마음에 드는 걸 하나 골라줘!'); },
+            function (kid, item) { return withKidPrefix(kid, particleEun(item) + ' 무슨 색깔일까?'); },
+            function (kid, item) { return withKidPrefix(kid, particleEun(item) + ' 무슨 모양일까?'); }
+          ]
         }
       };
 
       /* =========================================================================
-         4. Web Audio API 효과음 + 3종 축하 팡파레 + 개인화 한국어 TTS
+      4. Web Audio API 효과음 + 3종 축하 팡파레 + 한국어 TTS
       ========================================================================= */
       const sound = {
         ctx: null,
@@ -1545,7 +1633,6 @@
           };
 
           const melodies = [
-            // 1. 신나는 마림바 행진곡
             [
               { f: N.C5, t: 0.00, d: 0.15 }, { f: N.E5, t: 0.14, d: 0.15 }, { f: N.G5, t: 0.28, d: 0.16 },
               { f: N.C6, t: 0.45, d: 0.28 }, { f: N.A5, t: 0.75, d: 0.15 }, { f: N.G5, t: 0.91, d: 0.24 },
@@ -1553,7 +1640,6 @@
               { f: N.A5, t: 1.72, d: 0.15 }, { f: N.B5, t: 1.88, d: 0.15 }, { f: N.C6, t: 2.05, d: 0.58 },
               { f: N.E5, t: 2.05, d: 0.58, v: 0.14 }, { f: N.G5, t: 2.05, d: 0.58, v: 0.14 }
             ],
-            // 2. 반짝반짝 별 축제
             [
               { f: N.C5, t: 0.00, d: 0.15 }, { f: N.C5, t: 0.17, d: 0.15 }, { f: N.G5, t: 0.34, d: 0.16 },
               { f: N.G5, t: 0.52, d: 0.16 }, { f: N.A5, t: 0.70, d: 0.16 }, { f: N.A5, t: 0.88, d: 0.16 },
@@ -1561,7 +1647,6 @@
               { f: N.D5, t: 1.80, d: 0.16 }, { f: N.G5, t: 1.98, d: 0.18 }, { f: N.C6, t: 2.18, d: 0.58 },
               { f: N.E6, t: 2.36, d: 0.45, v: 0.15 }
             ],
-            // 3. 동화 속 팡파레
             [
               { f: N.G4, t: 0.00, d: 0.14 }, { f: N.C5, t: 0.14, d: 0.14 }, { f: N.E5, t: 0.28, d: 0.14 },
               { f: N.G5, t: 0.42, d: 0.28 }, { f: N.E5, t: 0.74, d: 0.15 }, { f: N.G5, t: 0.90, d: 0.30 },
@@ -1596,16 +1681,19 @@
       };
 
       /* =========================================================================
-         5. 게임 상태 & 5개 테마 1:1:1 유일 매핑 추출
+      5. 게임 상태 & 테마 추출
       ========================================================================= */
       const state = {
         round: 1,
         stars: 0,
-        seats: loadSavedSeats(), // [zone0PlayerId, zone1PlayerId, zone2PlayerId]
-        themeModeIdx: 0,         // 0: 'mixed' (🎲 모두 섞기)
+        photos: loadJsonStorage(STORAGE_KEY_PHOTOS),
+        names: loadJsonStorage(STORAGE_KEY_NAMES),
+        feedback: loadJsonStorage(STORAGE_KEY_FEEDBACK),
+        uploadTargetZone: 0,
+        themeModeIdx: 0,
         activeTheme: 'category',
         mixedThemeQueue: [],
-        zoneRoles: [0, 1, 2],    // 0: 주인공, 1: 연관 1, 2: 연관 2
+        zoneRoles: [0, 1, 2],
         turnOrder: [0, 1, 2],
         step: 0,
         roundSets: [],
@@ -1620,7 +1708,12 @@
       };
 
       function getZonePlayer(zoneIdx) {
-        return getPlayerById(state.seats[zoneIdx]);
+        return PLAYERS[zoneIdx] || PLAYERS[0];
+      }
+
+      function getZoneName(zoneIdx) {
+        const player = getZonePlayer(zoneIdx);
+        return (state.names[player.id] || '').trim();
       }
 
       function shuffle(arr) {
@@ -1757,7 +1850,6 @@
         return sets;
       }
 
-      // 매 판 왼쪽 -> 가운데 -> 오른쪽 공평하게 주인공(Role 0) 순환, 2·3번 역할과 순서는 랜덤/교대
       function assignRolesAndOrder() {
         const leaderZone = (state.round - 1) % 3;
         const others = [0, 1, 2].filter(function (z) { return z !== leaderZone; });
@@ -1776,7 +1868,7 @@
       }
 
       /* =========================================================================
-         6. 꽃가루 폭죽 캔버스
+      6. 꽃가루 폭죽 캔버스
       ========================================================================= */
       const confetti = {
         canvas: null,
@@ -1893,8 +1985,7 @@
       };
 
       /* =========================================================================
-         7. 100% 겹침 방지 안전 영역 지터링(Jittered 4-Quadrant) 자유 배치
-            - 상단 HUD+타겟 배너(~155px)와 하단 아이 얼굴 프로필(~130px) 사이 안전 영역 사용
+      7. 겹침 방지 안전 영역 자유 배치
       ========================================================================= */
       function computeJitteredLayout(zoneIdx) {
         const playEl = document.getElementById('play' + zoneIdx);
@@ -1954,7 +2045,7 @@
       }
 
       /* =========================================================================
-         8. 라운드 시작 및 전체 UI 렌더링
+      8. 라운드 시작 및 전체 UI 렌더링
       ========================================================================= */
       function startNewRound(announce) {
         state.step = 0;
@@ -1966,7 +2057,6 @@
         assignRolesAndOrder();
         state.roundSets = generateRoundSets(state.activeTheme);
 
-        // 상단/하단 크기를 먼저 확정해 안전 영역 계산 정확도 보장
         renderTopAndBottomMeta();
 
         for (let z = 0; z < 3; z++) {
@@ -2003,8 +2093,8 @@
         renderAll();
 
         if (announce) {
-          const leaderKid = getZonePlayer(state.turnOrder[0]);
-          sound.speak(callKid(leaderKid.name) + '! 마음에 드는 걸 하나 골라줘!');
+          const leaderName = getZoneName(state.turnOrder[0]);
+          sound.speak(withKidPrefix(leaderName, '마음에 드는 걸 하나 골라줘!'));
         }
       }
 
@@ -2030,19 +2120,18 @@
         const el = document.getElementById('topBanner' + z);
         if (!el) return;
         const meta = THEME_META[state.activeTheme];
-        const kid = getZonePlayer(z);
+        const kidName = getZoneName(z);
 
-        // 1번째 아이가 주인공을 고른 뒤에는 나머지 두 칸 상단에 대형 타겟 팝업 배너 표시
         if (state.targetSet && roleIdx !== 0) {
           const starter = state.targetSet.cols[0];
-          const promptText = meta.prompts[roleIdx](kid.name, starter.label);
+          const promptText = meta.prompts[roleIdx](kidName, starter.label);
           const prevId = el.getAttribute('data-target-id');
           el.classList.add('is-target-popup');
           el.innerHTML =
             '<div class="target-emoji">' + starter.emoji + '</div>' +
             '<div class="target-info">' +
               '<div class="target-name">' + starter.label + '</div>' +
-              '<div class="target-prompt">' + promptText + '</div>' +
+              '<div class="target-prompt">' + escapeHtml(promptText) + '</div>' +
             '</div>';
 
           if (prevId !== state.targetSet.id) {
@@ -2054,8 +2143,8 @@
         } else {
           el.classList.remove('is-target-popup');
           el.setAttribute('data-target-id', '');
-          if (roleIdx === 0) {
-            el.innerHTML = '<div class="role-chip-title">🌟 ' + callKid(kid.name) + '! 하나 골라줘!</div>';
+          if (roleIdx === 0 && kidName) {
+            el.innerHTML = '<div class="role-chip-title">🌟 ' + escapeHtml(callKid(kidName)) + '! 하나 골라줘!</div>';
           } else {
             el.innerHTML = '<div class="role-chip-title">' + meta.headers[roleIdx] + '</div>';
           }
@@ -2065,23 +2154,26 @@
       function renderPlayerDock(z, isActive, isDone) {
         const dockEl = document.getElementById('playerDock' + z);
         if (!dockEl) return;
-        const kid = getZonePlayer(z);
+        const player = getZonePlayer(z);
+        const kidName = getZoneName(z);
 
-        dockEl.style.setProperty('--player-color', kid.badgeColor);
-        dockEl.style.setProperty('--player-glow', kid.glow);
+        dockEl.style.setProperty('--player-color', player.badgeColor);
+        dockEl.style.setProperty('--player-glow', player.glow);
 
         let statusText = '잠깐 기다려요';
         if (isDone) statusText = '잘했어요! ⭐';
         else if (isActive) statusText = '⭐ 내 차례!';
 
+        const nameHtml = kidName
+          ? '<span class="player-name-pill">' + escapeHtml(kidName) + '</span>'
+          : '';
+
         dockEl.innerHTML =
           '<div class="player-avatar-wrap">' +
-            buildAvatarHtml(kid, true) +
+            buildAvatarHtml(player, state.photos[player.id]) +
           '</div>' +
           '<div class="player-meta">' +
-            '<div class="player-name-row">' +
-              '<span class="player-name-pill">' + kid.name + '</span>' +
-            '</div>' +
+            nameHtml +
             '<div class="player-turn-badge">' + statusText + '</div>' +
           '</div>';
       }
@@ -2174,74 +2266,158 @@
       }
 
       /* =========================================================================
-         9. 자리 배치 모달 (서율·유민·하린 중복 없는 자동 스왑)
+      9. 프로필(사진·이름) 설정 모달
       ========================================================================= */
-      function renderSeatModal() {
+      function renderProfileModal() {
         const grid = document.getElementById('seatGrid');
         if (!grid) return;
         grid.innerHTML = '';
 
         for (let z = 0; z < 3; z++) {
-          const curKid = getZonePlayer(z);
+          const player = getZonePlayer(z);
+          const hasPhoto = !!state.photos[player.id];
+          const curName = state.names[player.id] || '';
           const card = document.createElement('div');
           card.className = 'seat-slot-card';
           card.setAttribute('data-slot', String(z));
 
-          let btnsHtml = '';
-          for (let p = 0; p < PLAYERS.length; p++) {
-            const pl = PLAYERS[p];
-            const isSel = (pl.id === curKid.id);
-            const styleAttr = isSel ? ' style="background:' + pl.badgeColor + ';"' : '';
-            btnsHtml +=
-              '<button type="button" class="seat-pick-btn' + (isSel ? ' is-selected' : '') + '"' +
-              ' data-zone="' + z + '" data-pid="' + pl.id + '"' + styleAttr + '>' +
-              pl.name + '</button>';
-          }
-
           card.innerHTML =
             '<div class="seat-slot-label">' + SEAT_LABELS[z] + '</div>' +
-            '<div class="seat-preview-avatar" style="background:' + curKid.badgeColor + ';">' +
-              buildAvatarHtml(curKid, true) +
+            '<div class="seat-preview-avatar" data-zone="' + z + '" style="background:' + player.badgeColor + ';">' +
+              buildAvatarHtml(player, state.photos[player.id]) +
             '</div>' +
-            '<div class="seat-preview-name">' + curKid.name + '</div>' +
-            '<div class="seat-pick-row">' + btnsHtml + '</div>';
+            '<input type="text" class="profile-name-input" data-zone="' + z + '" maxlength="8" placeholder="이름 (선택)" value="' + escapeHtml(curName) + '" />' +
+            '<div class="seat-pick-row">' +
+              '<button type="button" class="photo-upload-btn" data-zone="' + z + '" style="background:' + player.badgeColor + ';">📷 사진 고르기</button>' +
+              (hasPhoto ? '<button type="button" class="photo-reset-btn" data-zone="' + z + '">초기화</button>' : '') +
+            '</div>';
 
           grid.appendChild(card);
         }
 
-        const pickBtns = grid.querySelectorAll('.seat-pick-btn');
-        for (let i = 0; i < pickBtns.length; i++) {
-          pickBtns[i].addEventListener('click', function () {
-            const targetZone = parseInt(this.getAttribute('data-zone'), 10);
-            const targetPid = this.getAttribute('data-pid');
-            const prevZone = state.seats.indexOf(targetPid);
-            if (prevZone !== -1 && prevZone !== targetZone) {
-              const displacedPid = state.seats[targetZone];
-              state.seats[targetZone] = targetPid;
-              state.seats[prevZone] = displacedPid;
-              saveSeats(state.seats);
-              sound.playPop();
-              renderSeatModal();
-              renderAll();
-            }
+        const nameInputs = grid.querySelectorAll('.profile-name-input');
+        for (let i = 0; i < nameInputs.length; i++) {
+          nameInputs[i].addEventListener('input', function () {
+            const z = parseInt(this.getAttribute('data-zone'), 10);
+            const player = getZonePlayer(z);
+            const val = this.value.trim();
+            if (val) state.names[player.id] = val;
+            else delete state.names[player.id];
+            saveJsonStorage(STORAGE_KEY_NAMES, state.names);
+            renderTopAndBottomMeta();
+          });
+        }
+
+        const triggerUpload = function () {
+          state.uploadTargetZone = parseInt(this.getAttribute('data-zone'), 10);
+          const input = document.getElementById('photoFileInput');
+          input.value = '';
+          input.click();
+        };
+
+        const uploadBtns = grid.querySelectorAll('.photo-upload-btn, .seat-preview-avatar');
+        for (let i = 0; i < uploadBtns.length; i++) {
+          uploadBtns[i].addEventListener('click', triggerUpload);
+        }
+
+        const resetBtns = grid.querySelectorAll('.photo-reset-btn');
+        for (let i = 0; i < resetBtns.length; i++) {
+          resetBtns[i].addEventListener('click', function () {
+            const z = parseInt(this.getAttribute('data-zone'), 10);
+            const player = getZonePlayer(z);
+            delete state.photos[player.id];
+            saveJsonStorage(STORAGE_KEY_PHOTOS, state.photos);
+            sound.playPop();
+            renderProfileModal();
+            renderAll();
           });
         }
       }
 
-      function openSeatModal() {
+      function openProfileModal() {
         sound.playPop();
-        renderSeatModal();
+        renderProfileModal();
         document.getElementById('seatModalOverlay').classList.add('show');
       }
 
-      function closeSeatModal() {
+      function closeProfileModal() {
         sound.playPop();
         document.getElementById('seatModalOverlay').classList.remove('show');
         renderAll();
       }
 
       /* =========================================================================
-         10. 터치 인터랙션, 부드러운 오답 힌트 & 축하 오버레이
+      10. 문제 피드백 저장(👍/👎) 및 내보내기(클립보드 복사)
+      ========================================================================= */
+      function updateFeedbackButtons() {
+        const upBtn = document.getElementById('fbUpBtn');
+        const downBtn = document.getElementById('fbDownBtn');
+        if (!upBtn || !downBtn) return;
+
+        upBtn.classList.remove('is-up');
+        downBtn.classList.remove('is-down');
+        if (!state.targetSet) return;
+
+        const saved = state.feedback[state.targetSet.id];
+        if (saved && saved.rating === 'up') upBtn.classList.add('is-up');
+        else if (saved && saved.rating === 'down') downBtn.classList.add('is-down');
+      }
+
+      function rateCurrentProblem(rating) {
+        if (!state.targetSet) return;
+        sound.playPop();
+        const id = state.targetSet.id;
+        const existing = state.feedback[id];
+
+        // 이미 같은 평가가 눌려있으면 취소, 아니면 저장
+        if (existing && existing.rating === rating) {
+          delete state.feedback[id];
+        } else {
+          state.feedback[id] = {
+            id: id,
+            theme: state.activeTheme,
+            items: [
+              state.targetSet.cols[0].label,
+              state.targetSet.cols[1].label,
+              state.targetSet.cols[2].label
+            ],
+            rating: rating
+          };
+        }
+        saveJsonStorage(STORAGE_KEY_FEEDBACK, state.feedback);
+        updateFeedbackButtons();
+      }
+
+      function exportFeedback() {
+        sound.playPop();
+        const bad = [];
+        const good = [];
+        const keys = Object.keys(state.feedback);
+
+        for (let i = 0; i < keys.length; i++) {
+          const entry = state.feedback[keys[i]];
+          if (!entry) continue;
+          const item = { id: entry.id, theme: entry.theme, items: entry.items };
+          if (entry.rating === 'down') bad.push(item);
+          else if (entry.rating === 'up') good.push(item);
+        }
+
+        const payload = JSON.stringify({ bad: bad, good: good }, null, 2);
+        const msg = '피드백 복사 완료! (👎 ' + bad.length + '개, 👍 ' + good.length + '개)';
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(payload).then(function () {
+            showFeedbackToast(msg);
+          }).catch(function () {
+            window.prompt('아래 피드백 내용을 복사하세요:', payload);
+          });
+        } else {
+          window.prompt('아래 피드백 내용을 복사하세요:', payload);
+        }
+      }
+
+      /* =========================================================================
+      11. 터치 인터랙션, 부드러운 오답 힌트 & 축하 오버레이
       ========================================================================= */
       function showFeedbackToast(msg) {
         const el = document.getElementById('feedbackToast');
@@ -2251,7 +2427,7 @@
         if (state.toastTimer) clearTimeout(state.toastTimer);
         state.toastTimer = setTimeout(function () {
           el.classList.remove('show');
-        }, 1600);
+        }, 1800);
       }
 
       function handleBubbleTap(zoneIdx, card, btnEl) {
@@ -2260,7 +2436,7 @@
         if (zoneIdx !== state.turnOrder[state.step]) return;
 
         const meta = THEME_META[state.activeTheme];
-        const curKid = getZonePlayer(zoneIdx);
+        const curName = getZoneName(zoneIdx);
 
         // 1단계: 주인공 자유 선택
         if (state.step === 0) {
@@ -2277,8 +2453,8 @@
 
           const nextZone = state.turnOrder[1];
           const nextRole = state.zoneRoles[nextZone];
-          const nextKid = getZonePlayer(nextZone);
-          sound.speak(card.label + '! ' + meta.prompts[nextRole](nextKid.name, card.label));
+          const nextName = getZoneName(nextZone);
+          sound.speak(card.label + '! ' + meta.prompts[nextRole](nextName, card.label));
           return;
         }
 
@@ -2292,9 +2468,9 @@
 
             const lastZone = state.turnOrder[2];
             const lastRole = state.zoneRoles[lastZone];
-            const lastKid = getZonePlayer(lastZone);
+            const lastName = getZoneName(lastZone);
             const starterLabel = state.targetSet.cols[0].label;
-            sound.speak('딩동! ' + card.label + '! ' + meta.prompts[lastRole](lastKid.name, starterLabel));
+            sound.speak('딩동! ' + card.label + '! ' + meta.prompts[lastRole](lastName, starterLabel));
           } else {
             state.step = 3;
             state.locked = true;
@@ -2302,7 +2478,6 @@
             setTimeout(showCelebration, 320);
           }
         } else {
-          // 부드러운 오답 처리 + 아이 이름으로 격려
           sound.playBoing();
           state.wrongCount++;
 
@@ -2310,19 +2485,20 @@
           void btnEl.offsetWidth;
           btnEl.classList.add('is-wrong');
 
+          const called = callKid(curName);
           if (state.wrongCount >= 2 && state.targetSet) {
-            const hintMsg = callKid(curKid.name) + ', 반짝이는 짝꿍을 눌러볼까? ✨';
-            showFeedbackToast(hintMsg);
-            sound.speak(callKid(curKid.name) + ', 반짝이는 짝꿍을 눌러볼까?');
+            const msg = called ? (called + ', 반짝이는 짝꿍을 눌러볼까?') : '반짝이는 짝꿍을 눌러볼까?';
+            showFeedbackToast(msg + ' ✨');
+            sound.speak(msg);
             const playEl = document.getElementById('play' + zoneIdx);
             if (playEl) {
               const correctBtn = playEl.querySelector('[data-set-id="' + state.targetSet.id + '"]');
               if (correctBtn) correctBtn.classList.add('is-hint');
             }
           } else {
-            const retryMsg = '음, ' + callKid(curKid.name) + ' 다른 걸 눌러볼까? 😊';
-            showFeedbackToast(retryMsg);
-            sound.speak('음, ' + callKid(curKid.name) + ' 다른 걸 눌러볼까?');
+            const msg = called ? ('음, ' + called + ' 다른 걸 눌러볼까?') : '음, 다른 걸 눌러볼까?';
+            showFeedbackToast(msg + ' 😊');
+            sound.speak(msg);
           }
         }
       }
@@ -2333,6 +2509,7 @@
 
         state.stars++;
         renderHud();
+        updateFeedbackButtons();
 
         const starsEl = document.getElementById('hudStars');
         if (starsEl) {
@@ -2341,7 +2518,6 @@
           starsEl.classList.add('bump');
         }
 
-        // 3개의 완성 짝꿍 표시
         for (let i = 0; i < 3; i++) {
           const col = tSet.cols[i];
           const visEl = document.getElementById('celVisual' + i);
@@ -2353,28 +2529,33 @@
           if (lblEl) lblEl.textContent = col.label;
         }
 
-        // 서율·유민·하린 미니 응원 프로필 (현재 자리 순서대로)
         const cheerRow = document.getElementById('celCheerRow');
+        const activeNames = [];
         if (cheerRow) {
           let cheerHtml = '';
           for (let z = 0; z < 3; z++) {
-            const kid = getZonePlayer(z);
+            const player = getZonePlayer(z);
+            const kidName = getZoneName(z);
+            if (kidName) activeNames.push(kidName);
+            const nameBadge = kidName
+              ? '<div class="cel-cheer-name" style="background:' + player.badgeColor + ';">' + escapeHtml(kidName) + '</div>'
+              : '';
             cheerHtml +=
               '<div class="cel-cheer-kid">' +
-                '<div class="cel-cheer-avatar" style="background:' + kid.badgeColor + ';">' +
-                  buildAvatarHtml(kid, false) +
+                '<div class="cel-cheer-avatar" style="background:' + player.badgeColor + ';">' +
+                  buildAvatarHtml(player, state.photos[player.id]) +
                 '</div>' +
-                '<div class="cel-cheer-name" style="background:' + kid.badgeColor + ';">' + kid.name + '</div>' +
+                nameBadge +
               '</div>';
           }
           cheerRow.innerHTML = cheerHtml;
         }
 
-        const kidNames = getZonePlayer(0).name + ', ' + getZonePlayer(1).name + ', ' + getZonePlayer(2).name;
         const trioWords = tSet.cols[0].label + ', ' + tSet.cols[1].label + ', ' + tSet.cols[2].label;
+        const namesPrefix = activeNames.length > 0 ? (activeNames.join(', ') + '! ') : '';
 
         document.getElementById('celTitle').textContent = '우와! ' + trioWords + '! 🎉';
-        document.getElementById('celSub').textContent = kidNames + '! 우리 셋이 최고야! ⭐';
+        document.getElementById('celSub').textContent = namesPrefix + '우리 셋이 최고야! ⭐';
 
         state.canTapOverlayNext = false;
         const hintEl = document.getElementById('celTapHint');
@@ -2385,7 +2566,7 @@
         sound.playFanfare();
 
         setTimeout(function () {
-          sound.speak('우와! ' + kidNames + '! ' + trioWords + '! 우리 셋이 최고야!');
+          sound.speak('우와! ' + namesPrefix + trioWords + '! 우리 셋이 최고야!');
         }, 550);
 
         if (state.overlayTimer) clearTimeout(state.overlayTimer);
@@ -2406,7 +2587,7 @@
       }
 
       /* =========================================================================
-         11. 초기화 & 이벤트 연결
+      12. 초기화 & 이벤트 연결
       ========================================================================= */
       function toggleFullscreen() {
         sound.playPop();
@@ -2425,6 +2606,20 @@
       document.addEventListener('DOMContentLoaded', function () {
         confetti.init();
 
+        // 갤러리 파일 선택 처리
+        document.getElementById('photoFileInput').addEventListener('change', function (e) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const player = getZonePlayer(state.uploadTargetZone);
+          resizeImageToDataUrl(file, 200, function (dataUrl) {
+            state.photos[player.id] = dataUrl;
+            saveJsonStorage(STORAGE_KEY_PHOTOS, state.photos);
+            sound.playCorrect();
+            renderProfileModal();
+            renderAll();
+          });
+        });
+
         // 테마 전환 버튼
         document.getElementById('themeBtn').addEventListener('click', function () {
           sound.playPop();
@@ -2433,12 +2628,23 @@
           startNewRound(true);
         });
 
-        // 자리 배치 모달 열기/닫기
-        document.getElementById('seatBtn').addEventListener('click', openSeatModal);
-        document.getElementById('seatDoneBtn').addEventListener('click', closeSeatModal);
+        // 프로필 모달 열기/닫기
+        document.getElementById('seatBtn').addEventListener('click', openProfileModal);
+        document.getElementById('seatDoneBtn').addEventListener('click', closeProfileModal);
         document.getElementById('seatModalOverlay').addEventListener('click', function (e) {
-          if (e.target === this) closeSeatModal();
+          if (e.target === this) closeProfileModal();
         });
+
+        // 피드백 버튼 (👍 / 👎) 및 내보내기 (📋)
+        document.getElementById('fbUpBtn').addEventListener('click', function (e) {
+          e.stopPropagation();
+          rateCurrentProblem('up');
+        });
+        document.getElementById('fbDownBtn').addEventListener('click', function (e) {
+          e.stopPropagation();
+          rateCurrentProblem('down');
+        });
+        document.getElementById('exportBtn').addEventListener('click', exportFeedback);
 
         // 효과음 토글
         const soundBtn = document.getElementById('soundBtn');
@@ -2496,7 +2702,6 @@
           }, 150);
         });
 
-        // 열자마자 바로 1판 시작!
         startNewRound(false);
       });
     })();
